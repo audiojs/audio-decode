@@ -1,0 +1,31 @@
+{
+  "name": "audio-decode",
+  "version": "1.0.0",
+  "description": "Decode audio data in node or browser",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {},
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiojs/audio-decode.git"
+  },
+  "keywords": [
+    "audiojs",
+    "audio",
+    "dsp",
+    "decode",
+    "codec",
+    "mp3",
+    "wav",
+    "web-audio"
+  ],
+  "author": "ΔY <dfcreative@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/audiojs/audio-decode/issues"
+  },
+  "homepage": "https://github.com/audiojs/audio-decode#readme"
+}
