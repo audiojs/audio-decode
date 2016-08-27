@@ -7,9 +7,10 @@ Convert _ArrayBuffer_ with audio encoded in any format to [AudioBuffer](https://
 ```js
 const decode = require('audio-decode');
 const buffer = require('audio-lena');
+const context = require('audio-context');
 
 //as a callback
-decode(buffer, {context: true}, audioBuffer => {
+decode(buffer, {context: context}, audioBuffer => {
 	play(audioBuffer);
 });
 
@@ -27,5 +28,11 @@ function play (buffer) {
 	sourceNode.start();
 }
 ```
+
+## API
+
+`**let promise = decode(arrayBuffer, options?, callback?)**`
+
+Decode array buffer, based on options maybe and pass data to the callback when done, or resolve a promise if no callback passed.
 
 You can use stream version as `require('audio-decode/stream')`.
