@@ -8,20 +8,19 @@ const context = require('audio-context');
 
 module.exports = decode;
 
-function decode (buffer, opts, cb) {
-	if (arguments.length === 2) {
-		if (opts instanceof Function) {
-			cb = opts;
-			opts = {};
-		}
-		else {
-			opts = cb;
-		}
+function decode (buffer, opts, cb, err) {
+	if (opts instanceof Function) {
+		err = cb;
+		cb = opts;
+		opts = {};
+	}
+	else {
+		opts = cb;
 	}
 
 	if (!opts) opts = {};
 
 	let ctx = opts.context || context;
 
-	return ctx.decodeAudioData(buffer, cb);
+	return ctx.decodeAudioData(buffer, cb, err);
 }
