@@ -32,7 +32,7 @@ function play (buffer) {
 
 ## API
 
-`**let promise = decode(arrayBuffer, options?, callback?)**`
+**`let promise = decode(arrayBuffer, options?, callback?)`**
 
 Decode array buffer, based on options maybe and pass data to the callback when done, or resolve a promise if no callback passed.
 
