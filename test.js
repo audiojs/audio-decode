@@ -5,7 +5,7 @@ const context = require('audio-context');
 
 
 //as a callback
-decode(buffer, {context: context}, audioBuffer => {
+decode(buffer, {context: context}, (err, audioBuffer) => {
 	play(audioBuffer);
 });
 
