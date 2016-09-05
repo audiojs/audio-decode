@@ -4,4 +4,6 @@
  * @module  audio-decode
  */
 
-module.exports = require('./direct');
+module.exports = () => {
+	return Promise.resolve();
+};
