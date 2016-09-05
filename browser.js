@@ -3,6 +3,7 @@
  *
  * @module  audio-decode
  */
+'use strict';
 
 const context = require('audio-context');
 

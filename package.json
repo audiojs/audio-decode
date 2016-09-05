@@ -13,7 +13,9 @@
   "browser": "./browser.js",
   "scripts": {
     "test": "node test.js",
-    "test:browser": "budo test.js"
+    "test:browser": "budo test.js",
+    "preversion": "npm run lint && npm run test",
+    "lint": "eslint *.js --ignore-pattern test*"
   },
   "repository": {
     "type": "git",
