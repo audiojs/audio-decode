@@ -1,3 +1,5 @@
+'use strict';
+
 const decode = require('./');
 const buffer = require('audio-lena');
 const util = require('audio-buffer-utils');
