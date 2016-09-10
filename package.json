@@ -4,11 +4,15 @@
   "description": "Decode audio data in node or browser",
   "main": "index.js",
   "dependencies": {
-    "audio-context": "^0.1.0"
+    "audio-context": "^0.1.0",
+    "audio-type": "^1.0.2",
+    "wav-decoder": "^1.1.0"
   },
   "devDependencies": {
     "audio-buffer-utils": "^3.1.2",
-    "audio-lena": "^1.0.0"
+    "audio-lena": "^1.0.0",
+    "audio-play": "github:audiojs/audio-play",
+    "audio-speaker": "^1.4.0"
   },
   "browser": "./browser.js",
   "scripts": {

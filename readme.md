@@ -8,6 +8,7 @@ Convert _ArrayBuffer_ with audio encoded in any format to [AudioBuffer](https://
 const decode = require('audio-decode');
 const buffer = require('audio-lena');
 const context = require('audio-context');
+const play = require('audio-play');
 
 //as a callback
 decode(buffer, {context: context}, (err, audioBuffer) => {
@@ -19,15 +20,6 @@ decode(buffer, {context: context}, (err, audioBuffer) => {
 decode(buffer, {context: context}).then(play, err => {
 	//:'(
 });
-
-
-//play sound
-function play (buffer) {
-	let sourceNode = context.createBufferSource();
-	sourceNode.connect(context.destination);
-	sourceNode.buffer = buffer;
-	sourceNode.start();
-}
 ```
 
 ## API
