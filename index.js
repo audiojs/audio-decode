@@ -22,8 +22,9 @@ module.exports = (buffer, opts, cb) => {
 	let type = getType(buffer);
 
 	if (!type) {
+		let err = Error('Cannot detect audio format of buffer');
 		cb && cb(err);
-		return Promise.reject('Cannot detect audio format of buffer');
+		return Promise.reject(err);
 	}
 
 	if (type === 'wav') {
@@ -37,5 +38,5 @@ module.exports = (buffer, opts, cb) => {
 		});
 	}
 
-	return Promise.reject('Format ' + type + ' is not supported yet.');
+	return Promise.reject('Format `' + type + '` is not supported yet.');
 };
