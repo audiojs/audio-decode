@@ -8,18 +8,12 @@ Convert _ArrayBuffer_ with audio encoded in any format to [AudioBuffer](https://
 const decode = require('audio-decode');
 const buffer = require('audio-lena');
 const context = require('audio-context');
-const play = require('audio-play');
 
 //as a callback
-decode(buffer, {context: context}, (err, audioBuffer) => {
-	if (err) return ':(';
-	play(audioBuffer);
-});
+decode(buffer, {context: context}, (err, audioBuffer) => {});
 
 //as a promise
-decode(buffer, {context: context}).then(play, err => {
-	//:'(
-});
+decode(buffer, {context: context}).then(audioBuffer => {}, err => {});
 ```
 
 ## API
@@ -28,4 +22,27 @@ decode(buffer, {context: context}).then(play, err => {
 
 Decode array buffer, based on options maybe and pass data to the callback when done, or resolve a promise if no callback passed.
 
-You can use stream version as `require('audio-decode/stream')`.
+Possible options may include `context` property for web-audio-api context. If not defined, the [audio-context](https://npmjs.org/package/audio-context) will be used.
+
+## Supported formats
+
+#### Shipped by default:
+
+* [x] _wav_ via [wav-decoder](https://github.com/mohayonao/wav-decoder)
+* [x] _mp3_ via [aurora mp3](https://github.com/audiocogs/mp3.js)
+
+#### Additional formats:
+
+* [ ] _flac_ via [flac.js](https://github.com/audiocogs/flac.js)
+* [ ] _alac_ via [alac.js](https://github.com/audiocogs/alac.js)
+* [ ] _flac_ via [aac.js](https://github.com/audiocogs/aac.js)
+
+To enable other format, install it as a dependency `npm install --save flac.js` and require once `require('flac.js')`.
+
+
+## Credits
+
+* [@mohayonao](https://github.com/mohayonao/) for [wav-decoder](https://github.com/mohayonao/wav-decoder).
+* [@devongovett](https://github.com/devongovett) and [@jensnockert](https://github.com/jensnockert) for [aurora.js](https://github.com/audiocogs/aurora.js).
+* [@jamen](https://github.com/jamen) as originator of this package.
+
