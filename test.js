@@ -23,12 +23,3 @@ decode(buffer, {context: context}, (err, audioBuffer) => {
 // 	});
 // }, 1000);
 
-
-// //play sound
-// function play (buffer) {
-// 	play(util.slice(buffer, 0, 44100));
-// 	let sourceNode = context.createBufferSource();
-// 	sourceNode.connect(context.destination);
-// 	sourceNode.buffer = buffer;
-// 	sourceNode.start();
-// }
