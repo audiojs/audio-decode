@@ -8,6 +8,8 @@
 const getType = require('audio-type');
 const WavDecoder = require('wav-decoder');
 const AudioBuffer = require('audio-buffer');
+const AV = require('av');
+require('mp3');
 
 module.exports = (buffer, opts, cb) => {
 	if (opts instanceof Function) {
@@ -16,6 +18,7 @@ module.exports = (buffer, opts, cb) => {
 	}
 
 	if (!opts) opts = {};
+	if (!cb) cb = (() => {});
 
 	if (buffer instanceof ArrayBuffer) buffer = Buffer.from(buffer);
 
@@ -23,18 +26,34 @@ module.exports = (buffer, opts, cb) => {
 
 	if (!type) {
 		let err = Error('Cannot detect audio format of buffer');
-		cb && cb(err);
+		cb(err);
 		return Promise.reject(err);
 	}
 
 	if (type === 'wav') {
 		return WavDecoder.decode(buffer).then(audioData => {
 			let audioBuffer = AudioBuffer(audioData.numberOfChannels, audioData.channelData, audioData.sampleRate);
-			cb && cb(null, audioBuffer);
+			cb(null, audioBuffer);
 			return Promise.resolve(audioBuffer);
 		}, err => {
-			cb && cb(err);
+			cb(err);
 			return Promise.reject(err);
+		});
+	}
+
+	if (type === 'mp3') {
+		let asset = AV.Asset.fromBuffer(buffer);
+		return new Promise((resolve, reject) => {
+			try {
+				asset.decodeToBuffer((buffer) => {
+					let data = AudioBuffer(asset.format.channelsPerFrame, buffer, asset.format.sampleRate);
+					cb(null, data);
+					resolve(data)
+				});
+			} catch (e) {
+				cb(e);
+				reject(e);
+			}
 		});
 	}
 
