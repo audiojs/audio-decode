@@ -8,6 +8,8 @@
 const getType = require('audio-type');
 const WavDecoder = require('wav-decoder');
 const AudioBuffer = require('audio-buffer');
+const toBuffer = require('typedarray-to-buffer');
+const isBuffer = require('is-buffer');
 const AV = require('av');
 require('mp3');
 
@@ -20,7 +22,7 @@ module.exports = (buffer, opts, cb) => {
 	if (!opts) opts = {};
 	if (!cb) cb = (() => {});
 
-	if (buffer instanceof ArrayBuffer) buffer = Buffer.from(buffer);
+	if (!isBuffer(buffer)) buffer = toBuffer(buffer);
 
 	let type = getType(buffer);
 

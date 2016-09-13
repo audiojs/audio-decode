@@ -8,7 +8,9 @@
     "audio-context": "^0.1.0",
     "audio-type": "^1.0.2",
     "av": "^0.4.9",
+    "is-buffer": "^1.1.4",
     "mp3": "^0.1.0",
+    "typedarray-to-buffer": "^3.1.2",
     "wav-decoder": "^1.1.0"
   },
   "devDependencies": {
