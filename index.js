@@ -15,7 +15,6 @@ const mp3 = require('mp3');
 const flac = require('flac');
 const aac = require('aac');
 const alac = require('alac');
-const ogg = require('ogg')
 
 module.exports = (buffer, opts, cb) => {
 	if (opts instanceof Function) {
