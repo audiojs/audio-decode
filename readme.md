@@ -30,12 +30,9 @@ Shipped by default:
 
 * [x] _wav_ via [wav-decoder](https://github.com/mohayonao/wav-decoder)
 * [x] _mp3_ via [aurora mp3](https://github.com/audiocogs/mp3.js)
-
-Additional formats:
-
-* _flac_ via [flac.js](https://github.com/audiocogs/flac.js)
-* _alac_ via [alac.js](https://github.com/audiocogs/alac.js)
-* _aac_ via [aac.js](https://github.com/audiocogs/aac.js)
+* [x] _flac_ via [flac.js](https://github.com/audiocogs/flac.js)
+* [x] _alac_ via [alac.js](https://github.com/audiocogs/alac.js)
+* [x] _aac_ via [aac.js](https://github.com/audiocogs/aac.js)
 
 To enable additional format, install it as a dependency `npm install --save flac.js` and require once `require('flac.js')`.
 
