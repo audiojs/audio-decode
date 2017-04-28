@@ -77,6 +77,4 @@ module.exports = (buffer, opts, cb) => {
 			reject(e);
 		}
 	});
-
-	return Promise.reject('Format `' + type + '` is not supported yet.');
 };
