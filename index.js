@@ -34,7 +34,7 @@ module.exports = (buffer, opts, cb) => {
 
 	if (type === 'wav') {
 		return WavDecoder.decode(buffer).then(audioData => {
-			let audioBuffer = AudioBuffer(audioData.numberOfChannels, audioData.channelData, audioData.sampleRate);
+			let audioBuffer = new AudioBuffer(audioData.numberOfChannels, audioData.channelData, audioData.sampleRate);
 			cb(null, audioBuffer);
 			return Promise.resolve(audioBuffer);
 		}, err => {
@@ -43,21 +43,20 @@ module.exports = (buffer, opts, cb) => {
 		});
 	}
 
-	if (type === 'mp3') {
-		let asset = AV.Asset.fromBuffer(buffer);
-		return new Promise((resolve, reject) => {
-			try {
-				asset.decodeToBuffer((buffer) => {
-					let data = AudioBuffer(asset.format.channelsPerFrame, buffer, asset.format.sampleRate);
-					cb(null, data);
-					resolve(data)
-				});
-			} catch (e) {
-				cb(e);
-				reject(e);
-			}
-		});
-	}
+	let asset = AV.Asset.fromBuffer(buffer);
+
+	return new Promise((resolve, reject) => {
+		try {
+			asset.decodeToBuffer((buffer) => {
+				let data = new AudioBuffer(asset.format.channelsPerFrame, buffer, asset.format.sampleRate);
+				cb(null, data);
+				resolve(data)
+			});
+		} catch (e) {
+			cb(e);
+			reject(e);
+		}
+	});
 
 	return Promise.reject('Format `' + type + '` is not supported yet.');
 };
