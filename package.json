@@ -14,7 +14,6 @@
   },
   "optionalDependencies": {
     "mp3": "^0.1.0",
-    "ogg": "^1.2.5",
     "flac": "^0.3.0",
     "aac": "^0.1.3",
     "alac": "^0.1.0"
