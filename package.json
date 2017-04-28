@@ -12,7 +12,7 @@
     "typedarray-to-buffer": "^3.1.2",
     "wav-decoder": "^1.1.0"
   },
-  "peerDependencies": {
+  "optionalDependencies": {
     "mp3": "^0.1.0",
     "ogg": "^1.2.5",
     "flac": "^0.3.0",
