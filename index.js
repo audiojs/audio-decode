@@ -11,7 +11,11 @@ const AudioBuffer = require('audio-buffer');
 const toBuffer = require('typedarray-to-buffer');
 const isBuffer = require('is-buffer');
 const AV = require('av');
-require('mp3');
+const mp3 = require('mp3');
+const flac = require('flac');
+const aac = require('aac');
+const alac = require('alac');
+const ogg = require('ogg')
 
 module.exports = (buffer, opts, cb) => {
 	if (opts instanceof Function) {
@@ -43,6 +47,23 @@ module.exports = (buffer, opts, cb) => {
 		});
 	}
 
+	/*
+	if (type === 'ogg') {
+		let decoder = ogg.Decoder()
+
+		decoder.on('stream', function (stream) {
+			stream.on('data', function (packet) {
+
+			})
+
+			stream.on('end', function () {
+
+			})
+		})
+	}
+	*/
+
+	//handle other codecs by AV
 	let asset = AV.Asset.fromBuffer(buffer);
 
 	return new Promise((resolve, reject) => {
