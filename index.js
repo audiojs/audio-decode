@@ -11,10 +11,10 @@ const AudioBuffer = require('audio-buffer');
 const toBuffer = require('typedarray-to-buffer');
 const isBuffer = require('is-buffer');
 const AV = require('av');
-const mp3 = require('mp3');
-const flac = require('flac');
-const aac = require('aac');
-const alac = require('alac');
+require('mp3');
+require('flac');
+require('aac');
+require('alac');
 
 module.exports = (buffer, opts, cb) => {
 	if (opts instanceof Function) {
