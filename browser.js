@@ -17,7 +17,7 @@ function decode (buffer, opts, cb) {
 
 	if (!opts) opts = {};
 
-	let ctx = opts.context || context;
+	let ctx = opts.context || context();
 
 	return ctx.decodeAudioData(buffer, (buf) => {
 		cb && cb(null, buf);
