@@ -7,13 +7,13 @@ Convert _ArrayBuffer_ with audio encoded in any format to [AudioBuffer](https://
 ```js
 const decode = require('audio-decode');
 const buffer = require('audio-lena');
-const context = require('audio-context');
+const getContext = require('audio-context');
 
 //as a callback
-decode(buffer, {context: context}, (err, audioBuffer) => {});
+decode(buffer, {context: getContext()}, (err, audioBuffer) => {});
 
 //as a promise
-decode(buffer, {context: context}).then(audioBuffer => {}, err => {});
+decode(buffer, {context: getContext()}).then(audioBuffer => {}, err => {});
 ```
 
 ## API
