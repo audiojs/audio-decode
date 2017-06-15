@@ -7,7 +7,7 @@
 
 const getType = require('audio-type');
 const WavDecoder = require('wav-decoder');
-const AudioBuffer = require('audio-buffer');
+const util = require('audio-buffer-utils');
 const toBuffer = require('typedarray-to-buffer');
 const isBuffer = require('is-buffer');
 const AV = require('av');
@@ -37,7 +37,7 @@ module.exports = (buffer, opts, cb) => {
 
 	if (type === 'wav') {
 		return WavDecoder.decode(buffer).then(audioData => {
-			let audioBuffer = new AudioBuffer(audioData.numberOfChannels, audioData.channelData, audioData.sampleRate);
+			let audioBuffer = util.create(audioData.channelData, audioData.numberOfChannels, audioData.sampleRate);
 			cb(null, audioBuffer);
 			return Promise.resolve(audioBuffer);
 		}, err => {
@@ -68,7 +68,7 @@ module.exports = (buffer, opts, cb) => {
 	return new Promise((resolve, reject) => {
 		try {
 			asset.decodeToBuffer((buffer) => {
-				let data = new AudioBuffer(asset.format.channelsPerFrame, buffer, asset.format.sampleRate);
+				let data = util.create(buffer, asset.format.channelsPerFrame, asset.format.sampleRate);
 				cb(null, data);
 				resolve(data)
 			});
