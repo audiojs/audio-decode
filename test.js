@@ -11,7 +11,7 @@ const t = require('tape');
 
 //as a callback
 t('wav', function (t) {
-	decode(wav, {context: context}, (err, audioBuffer) => {
+	decode(wav, (err, audioBuffer) => {
 		try {
 			play(audioBuffer, {end: 2}, () => t.end());
 		} catch (e) {
@@ -21,7 +21,7 @@ t('wav', function (t) {
 });
 
 t('mp3', function (t) {
-	decode(mp3, {context: context}, (err, audioBuffer) => {
+	decode(mp3, (err, audioBuffer) => {
 		try {
 			play(audioBuffer, {end: 2}, () => {
 				t.end()
@@ -33,7 +33,7 @@ t('mp3', function (t) {
 });
 
 t.skip('raw floats', function (t) {
-	decode(raw, {context: context}, (err, audioBuffer) => {
+	decode(raw, (err, audioBuffer) => {
 		play(audioBuffer, {end: 2}, () => {
 			t.end()
 		});
@@ -41,7 +41,7 @@ t.skip('raw floats', function (t) {
 })
 
 t('promise', t => {
-	decode(wav, {context: context}).then(audioBuffer => {
+	decode(wav).then(audioBuffer => {
 		play(audioBuffer, {end: 2}, () => {
 			t.end()
 		});

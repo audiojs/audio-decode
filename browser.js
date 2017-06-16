@@ -5,7 +5,7 @@
  */
 'use strict';
 
-const context = require('audio-context');
+const getContext = require('audio-context');
 
 module.exports = decode;
 
@@ -17,7 +17,7 @@ function decode (buffer, opts, cb) {
 
 	if (!opts) opts = {};
 
-	let ctx = opts.context || context();
+	let ctx = opts.context || getContext();
 
 	return ctx.decodeAudioData(buffer, (buf) => {
 		cb && cb(null, buf);
