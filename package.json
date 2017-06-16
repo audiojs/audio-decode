@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "audio-lena": "^1.0.0",
-    "audio-play": "^2.1.0",
+    "audio-play": "^2.2.0",
     "audio-speaker": "^1.4.3",
     "tape": "^4.6.3"
   },
