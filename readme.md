@@ -1,6 +1,6 @@
 # audio-decode [![Build Status](https://travis-ci.org/audiojs/audio-decode.svg?branch=master)](https://travis-ci.org/audiojs/audio-decode) [![unstable](https://img.shields.io/badge/stability-unstable-green.svg)](http://github.com/badges/stability-badges) [![Greenkeeper badge](https://badges.greenkeeper.io/audiojs/audio-decode.svg)](https://greenkeeper.io/)
 
-Convert encoded audio data in any format to [AudioBuffer](https://github.com/audiojs/audio-buffer). Basically [context.decodeAudioData](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/decodeAudioData) for node and browser.
+Convert `mp3`/`wav` _ArrayBuffer/ArrayBufferView/Buffer/File/Blob/data-uri_ to [AudioBuffer](https://github.com/audiojs/audio-buffer).
 
 [![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
 
@@ -46,3 +46,10 @@ Additional formats available:
 * [@devongovett](https://github.com/devongovett) and [@jensnockert](https://github.com/jensnockert) for [aurora.js](https://github.com/audiocogs/aurora.js).
 * [@jamen](https://github.com/jamen) as originator of this package.
 
+## Related
+
+* [context.decodeAudioData](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/decodeAudioData) web-audio-api
+
+## License
+
+[MIT](LICENSE) &copy; <a href="https://github.com/audiojs">audiojs</a>.
