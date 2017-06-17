@@ -7,23 +7,24 @@ const raw = require('audio-lena/buffer');
 const context = require('audio-context')();
 const play = require('audio-play');
 const t = require('tape');
+const isBrowser = require('is-browser')
 
 
 //as a callback
-t('wav', function (t) {
+t('wav buffer', function (t) {
 	decode(wav, (err, audioBuffer) => {
 		try {
-			play(audioBuffer, {end: 2}, () => t.end());
+			play(audioBuffer, {end: 1}, () => t.end());
 		} catch (e) {
 			throw e;
 		}
 	});
 });
 
-t('mp3', function (t) {
+t('mp3 buffer', function (t) {
 	decode(mp3, (err, audioBuffer) => {
 		try {
-			play(audioBuffer, {end: 2}, () => {
+			play(audioBuffer, {end: 1}, () => {
 				t.end()
 			});
 		} catch (e) {
@@ -32,9 +33,33 @@ t('mp3', function (t) {
 	});
 });
 
+isBrowser && t('File', t => {
+	decode(new File([mp3], 'lena.mp3'), (err, audioBuffer) => {
+		try {
+			play(audioBuffer, {end: 1}, () => {
+				t.end()
+			});
+		} catch (e) {
+			throw e;
+		}
+	});
+})
+
+isBrowser && t('Blob', t => {
+	decode(new Blob([mp3]), (err, audioBuffer) => {
+		try {
+			play(audioBuffer, {end: 1}, () => {
+				t.end()
+			});
+		} catch (e) {
+			throw e;
+		}
+	});
+})
+
 t.skip('raw floats', function (t) {
 	decode(raw, (err, audioBuffer) => {
-		play(audioBuffer, {end: 2}, () => {
+		play(audioBuffer, {end: 1}, () => {
 			t.end()
 		});
 	})
@@ -42,10 +67,25 @@ t.skip('raw floats', function (t) {
 
 t('promise', t => {
 	decode(wav).then(audioBuffer => {
-		play(audioBuffer, {end: 2}, () => {
+		play(audioBuffer, {end: 1}, () => {
 			t.end()
 		});
 	}, err => {
 		t.fail(err)
 	});
+})
+
+t('decode error', t => {
+	decode(new Float32Array(10)).then(data => {
+		t.fail(data)
+	}, err => {
+		t.ok(err)
+	})
+
+	decode(null).then(data => {
+		t.fail(data)
+	}, err => {
+		t.ok(err)
+		t.end()
+	})
 })

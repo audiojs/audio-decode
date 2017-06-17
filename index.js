@@ -8,13 +8,11 @@
 const getType = require('audio-type');
 const WavDecoder = require('wav-decoder');
 const util = require('audio-buffer-utils');
-const toBuffer = require('typedarray-to-buffer');
+const toArrayBuffer = require('to-array-buffer')
+const toBuffer = require('typedarray-to-buffer')
 const isBuffer = require('is-buffer');
 const AV = require('av');
 require('mp3');
-require('flac');
-require('aac');
-require('alac');
 
 module.exports = (buffer, opts, cb) => {
 	if (opts instanceof Function) {
@@ -25,7 +23,10 @@ module.exports = (buffer, opts, cb) => {
 	if (!opts) opts = {};
 	if (!cb) cb = (() => {});
 
-	if (!isBuffer(buffer)) buffer = toBuffer(buffer);
+	if (!isBuffer(buffer)) {
+		if (ArrayBuffer.isView(buffer)) buffer = toBuffer(buffer)
+		else buffer = Buffer.from(toArrayBuffer(buffer));
+	}
 
 	let type = getType(buffer);
 
