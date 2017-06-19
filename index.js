@@ -25,7 +25,9 @@ module.exports = (buffer, opts, cb) => {
 
 	if (!isBuffer(buffer)) {
 		if (ArrayBuffer.isView(buffer)) buffer = toBuffer(buffer)
-		else buffer = Buffer.from(toArrayBuffer(buffer));
+		else {
+			buffer = Buffer.from(toArrayBuffer(buffer));
+		}
 	}
 
 	let type = getType(buffer);
@@ -47,35 +49,19 @@ module.exports = (buffer, opts, cb) => {
 		});
 	}
 
-	/*
-	if (type === 'ogg') {
-		let decoder = ogg.Decoder()
-
-		decoder.on('stream', function (stream) {
-			stream.on('data', function (packet) {
-
-			})
-
-			stream.on('end', function () {
-
-			})
-		})
-	}
-	*/
-
-	//handle other codecs by AV
-	let asset = AV.Asset.fromBuffer(buffer);
-
 	return new Promise((resolve, reject) => {
-		try {
-			asset.decodeToBuffer((buffer) => {
-				let data = util.create(buffer, asset.format.channelsPerFrame, asset.format.sampleRate);
-				cb(null, data);
-				resolve(data)
-			});
-		} catch (e) {
-			cb(e);
-			reject(e);
-		}
+		//handle other codecs by AV
+		let asset = AV.Asset.fromBuffer(buffer);
+
+		asset.on('error', err => {
+			cb(err)
+			reject(err)
+		})
+
+		asset.decodeToBuffer((buffer) => {
+			let data = util.create(buffer, asset.format.channelsPerFrame, asset.format.sampleRate)
+			cb(null, data);
+			resolve(data)
+		});
 	});
 };

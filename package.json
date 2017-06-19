@@ -9,13 +9,12 @@
     "audio-type": "^1.0.2",
     "av": "^0.4.9",
     "is-buffer": "^1.1.4",
-    "to-array-buffer": "^1.2.4",
+    "mp3": "^0.1.0",
+    "to-array-buffer": "^2.0.0",
     "typedarray-to-buffer": "^3.1.2",
     "wav-decoder": "^1.1.0"
   },
-  "optionalDependencies": {
-    "mp3": "^0.1.0"
-  },
+  "optionalDependencies": {},
   "devDependencies": {
     "audio-lena": "^2.0.0",
     "audio-play": "^2.1.0",

@@ -27,16 +27,19 @@ Possible options may include `context` property for web-audio-api context. If no
 
 Shipped by default:
 
-* [x] _wav_ via [wav-decoder](https://github.com/mohayonao/wav-decoder)
-* [x] _mp3_ via [aurora mp3](https://github.com/audiocogs/mp3.js)
+* _wav_ via [wav-decoder](https://github.com/mohayonao/wav-decoder)
+* _mp3_ via [aurora mp3](https://github.com/audiocogs/mp3.js)
 
 To enable additional format, install it as a dependency `npm install --save flac.js` and require once `require('flac.js')`.
 
 Additional formats available:
 
-* [x] _flac_ via [flac.js](https://github.com/audiocogs/flac.js)
-* [x] _alac_ via [alac.js](https://github.com/audiocogs/alac.js)
-* [x] _aac_ via [aac.js](https://github.com/audiocogs/aac.js)
+* _flac_ via [flac.js](https://github.com/audiocogs/flac.js)
+* _alac_ via [alac.js](https://github.com/audiocogs/alac.js)
+* _aac_ via [aac.js](https://github.com/audiocogs/aac.js)
+* _vorbis_ via [vorbis.js](https://github.com/audiocogs/vorbis.js)
+* _ogg_ via [ogg.js](https://github.com/audiocogs/ogg.js)
+* _opus_ via [opus.js](https://github.com/audiocogs/opus.js)
 
 
 ## Credits

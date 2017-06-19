@@ -3,7 +3,7 @@
 const decode = require('./');
 const wav = require('audio-lena/wav');
 const mp3 = require('audio-lena/mp3');
-const raw = require('audio-lena/buffer');
+const raw = require('audio-lena/raw');
 const context = require('audio-context')();
 const play = require('audio-play');
 const t = require('tape');
@@ -32,6 +32,20 @@ t('mp3 buffer', function (t) {
 		}
 	});
 });
+
+t.skip('mp3 base64', t => {
+	decode(require('audio-lena/mp3-base64'), (err, buf) => {
+		if (err) t.fail(err)
+		t.end()
+	})
+})
+
+t.skip('mp3 datauri', t => {
+	decode(require('audio-lena/mp3-datauri'), (err, buf) => {
+		if (err) t.fail(err)
+		t.end()
+	})
+})
 
 isBrowser && t('File', t => {
 	decode(new File([mp3], 'lena.mp3'), (err, audioBuffer) => {
@@ -85,6 +99,10 @@ t('decode error', t => {
 	decode(null).then(data => {
 		t.fail(data)
 	}, err => {
+		t.ok(err)
+	})
+
+	decode(require('audio-lena/mp3-base64') + 'xxx', (err, buf) => {
 		t.ok(err)
 		t.end()
 	})
