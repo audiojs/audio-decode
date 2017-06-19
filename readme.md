@@ -17,11 +17,11 @@ decode(buffer).then(audioBuffer => {}, err => {});
 
 ## API
 
-**`let promise = decode(source, options?, callback?)`**
+**`let promise = decode(source, {context}?, (err, audioBuffer)=>{}?)`**
 
 Decode `source`, based on `options` and fire `callback` when done, or resolve a promise if no callback passed. Source type can be: _ArrayBuffer_, _ArrayBufferView_, _Buffer_, _Blob_, _File_ or data-uri string.
 
-Possible options may include `context` property for web-audio-api context. If not defined, the [audio-context](https://npmjs.org/package/audio-context) is used.
+`options` may include `context` property for web-audio-api context (browser-only). By default new [audio-context](https://npmjs.org/package/audio-context) is created.
 
 ## Supported formats
 
