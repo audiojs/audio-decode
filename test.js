@@ -33,14 +33,14 @@ t('mp3 buffer', function (t) {
 	});
 });
 
-t.skip('mp3 base64', t => {
+t('mp3 base64', t => {
 	decode(require('audio-lena/mp3-base64'), (err, buf) => {
 		if (err) t.fail(err)
 		t.end()
 	})
 })
 
-t.skip('mp3 datauri', t => {
+t('mp3 datauri', t => {
 	decode(require('audio-lena/mp3-datauri'), (err, buf) => {
 		if (err) t.fail(err)
 		t.end()
