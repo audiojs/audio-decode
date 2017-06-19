@@ -25,6 +25,8 @@ Possible options may include `context` property for web-audio-api context. If no
 
 ## Supported formats
 
+Browser version uses [decodeAudioData](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/decodeAudioData) method, in node the [avrora](https://npmjs.org/package/av) is used.
+
 Shipped by default:
 
 * _wav_ via [wav-decoder](https://github.com/mohayonao/wav-decoder)
