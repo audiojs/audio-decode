@@ -36,13 +36,26 @@ t('mp3 buffer', function (t) {
 t('mp3 base64', t => {
 	decode(require('audio-lena/mp3-base64'), (err, buf) => {
 		if (err) t.fail(err)
+		t.ok(buf.length)
 		t.end()
 	})
 })
 
-t('mp3 datauri', t => {
-	decode(require('audio-lena/mp3-datauri'), (err, buf) => {
+t.skip('ogg datauri', t => {
+	require('ogg.js')
+	require('vorbis.js')
+	decode(require('audio-lena/ogg-datauri'), (err, buf) => {
 		if (err) t.fail(err)
+		t.ok(buf.length)
+		t.end()
+	})
+})
+
+t('flac datauri', t => {
+	require('flac.js')
+	decode(require('audio-lena/flac-datauri'), (err, buf) => {
+		if (err) t.fail(err)
+		t.ok(buf.length)
 		t.end()
 	})
 })

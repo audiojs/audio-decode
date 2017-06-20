@@ -39,10 +39,19 @@ Additional formats available:
 * _flac_ via [flac.js](https://github.com/audiocogs/flac.js)
 * _alac_ via [alac.js](https://github.com/audiocogs/alac.js)
 * _aac_ via [aac.js](https://github.com/audiocogs/aac.js)
-* _vorbis_ via [vorbis.js](https://github.com/audiocogs/vorbis.js)
-* _ogg_ via [ogg.js](https://github.com/audiocogs/ogg.js)
+* _ogg/vorbis_ via [vorbis.js](https://github.com/audiocogs/vorbis.js)
 * _opus_ via [opus.js](https://github.com/audiocogs/opus.js)
 
+```js
+// Decode flac
+let decode = require('audio-decode')
+let flac = require('audio-lena/flac')
+require('flac.js')
+
+decode(flac).then(audioBuffer => {
+	//buffer is ready here
+})
+```
 
 ## Credits
 
