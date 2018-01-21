@@ -14,7 +14,7 @@ const isBrowser = require('is-browser')
 t('wav buffer', function (t) {
 	decode(wav, (err, audioBuffer) => {
 		try {
-			play(audioBuffer, {end: 1}, () => t.end());
+			play(audioBuffer, {end: 2}, () => t.end());
 		} catch (e) {
 			throw e;
 		}
@@ -32,33 +32,6 @@ t('mp3 buffer', function (t) {
 		}
 	});
 });
-
-t('mp3 base64', t => {
-	decode(require('audio-lena/mp3-base64'), (err, buf) => {
-		if (err) t.fail(err)
-		t.ok(buf.length)
-		t.end()
-	})
-})
-
-t.skip('ogg datauri', t => {
-	require('ogg.js')
-	require('vorbis.js')
-	decode(require('audio-lena/ogg-datauri'), (err, buf) => {
-		if (err) t.fail(err)
-		t.ok(buf.length)
-		t.end()
-	})
-})
-
-t('flac datauri', t => {
-	require('flac.js')
-	decode(require('audio-lena/flac-datauri'), (err, buf) => {
-		if (err) t.fail(err)
-		t.ok(buf.length)
-		t.end()
-	})
-})
 
 isBrowser && t('File', t => {
 	decode(new File([mp3], 'lena.mp3'), (err, audioBuffer) => {
@@ -82,6 +55,39 @@ isBrowser && t('Blob', t => {
 			throw e;
 		}
 	});
+})
+
+t('mp3 base64', t => {
+	decode(require('audio-lena/mp3-base64'), (err, buf) => {
+		if (err) t.fail(err)
+		t.ok(buf.length)
+		t.end()
+	})
+})
+
+t.skip('ogg datauri', t => {
+	// require('ogg.js')
+	// require('vorbis.js')
+	decode(require('audio-lena/ogg-datauri'), (err, buf) => {
+		if (err) t.fail(err)
+
+		try {
+			play(buf, {end: 4}, () => {
+				t.end()
+			});
+		} catch (e) {
+			throw e;
+		}
+	})
+})
+
+t('flac datauri', t => {
+	require('flac.js')
+	decode(require('audio-lena/flac-datauri'), (err, buf) => {
+		if (err) t.fail(err)
+		t.ok(buf.length)
+		t.end()
+	})
 })
 
 t.skip('raw floats', function (t) {

@@ -7,7 +7,7 @@
 
 const getType = require('audio-type');
 const WavDecoder = require('wav-decoder');
-const util = require('audio-buffer-utils');
+const createBuffer = require('audio-buffer-from');
 const toArrayBuffer = require('to-array-buffer')
 const toBuffer = require('typedarray-to-buffer')
 const isBuffer = require('is-buffer');
@@ -38,9 +38,13 @@ module.exports = (buffer, opts, cb) => {
 		return Promise.reject(err);
 	}
 
+	// direct wav decoder
 	if (type === 'wav') {
 		return WavDecoder.decode(buffer).then(audioData => {
-			let audioBuffer = util.create(audioData.channelData, audioData.numberOfChannels, audioData.sampleRate);
+			let audioBuffer = createBuffer(audioData.channelData, {
+				channels: audioData.numberOfChannels,
+				sampleRate: audioData.sampleRate
+			});
 			cb(null, audioBuffer);
 			return Promise.resolve(audioBuffer);
 		}, err => {
@@ -49,8 +53,28 @@ module.exports = (buffer, opts, cb) => {
 		});
 	}
 
+	// ogg decoder
+	/*
+	if (type === 'ogg' || type === 'oga' || type === 'ogv') {
+		let decoder = new ogg.Decoder();
+
+		decoder.on('stream', function (stream) {
+			stream.on('packet', function (packet) {
+				console.log('got "packet":', packet.length);
+			});
+
+			// emitted after the last packet of the stream
+			stream.on('end', function () {
+				console.log('got "end":', decoder[191]);
+			});
+		});
+
+		decoder.write(buffer)
+	}
+	*/
+
+	//handle other codecs by AV
 	return new Promise((resolve, reject) => {
-		//handle other codecs by AV
 		let asset = AV.Asset.fromBuffer(buffer);
 
 		asset.on('error', err => {
@@ -59,7 +83,10 @@ module.exports = (buffer, opts, cb) => {
 		})
 
 		asset.decodeToBuffer((buffer) => {
-			let data = util.create(buffer, asset.format.channelsPerFrame, asset.format.sampleRate)
+			let data = createBuffer(buffer, {
+				channels: asset.format.channelsPerFrame,
+				sampleRate: asset.format.sampleRate
+			})
 			cb(null, data);
 			resolve(data)
 		});

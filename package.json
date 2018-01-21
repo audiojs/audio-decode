@@ -4,7 +4,7 @@
   "description": "Decode audio data in node or browser",
   "main": "index.js",
   "dependencies": {
-    "audio-buffer-utils": "^5.0.1",
+    "audio-buffer-from": "^1.1.1",
     "audio-context": "^1.0.1",
     "audio-type": "^1.0.2",
     "av": "^0.4.9",
@@ -18,7 +18,7 @@
   "devDependencies": {
     "audio-lena": "^2.0.0",
     "audio-play": "^2.1.0",
-    "audio-speaker": "^1.4.3",
+    "audio-speaker": "^1.5.0",
     "flac.js": "^0.2.1",
     "ogg.js": "^0.1.0",
     "tape": "^4.6.3",

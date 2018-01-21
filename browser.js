@@ -40,7 +40,8 @@ function decode (buffer, opts, cb) {
 		buffer = toAB(buffer)
 	}
 
-	return ctx.decodeAudioData(buffer, (buf) => {
+	// decodeAudioData spoils the initial buffer, so we have to copy that
+	return ctx.decodeAudioData(buffer.slice(), (buf) => {
 		cb && cb(null, buf);
 	}, (err) => {
 		cb && cb(err);
