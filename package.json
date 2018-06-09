@@ -8,7 +8,7 @@
     "audio-context": "^1.0.1",
     "audio-type": "^1.0.2",
     "av": "^0.4.9",
-    "is-buffer": "^1.1.4",
+    "is-buffer": "^2.0.3",
     "mp3": "^0.1.0",
     "to-array-buffer": "^2.0.0",
     "typedarray-to-buffer": "^3.1.2",
