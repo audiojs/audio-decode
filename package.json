@@ -10,7 +10,7 @@
     "av": "^0.4.9",
     "is-buffer": "^1.1.4",
     "mp3": "^0.1.0",
-    "to-array-buffer": "^2.0.0",
+    "to-array-buffer": "^3.2.0",
     "typedarray-to-buffer": "^3.1.2",
     "wav-decoder": "^1.1.0"
   },
