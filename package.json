@@ -21,7 +21,7 @@
     "audio-speaker": "^1.5.0",
     "flac.js": "^0.2.1",
     "ogg.js": "^0.1.0",
-    "tape": "^4.6.3",
+    "tape": "^5.0.0",
     "vorbis.js": "^0.1.1"
   },
   "browser": "./browser.js",
