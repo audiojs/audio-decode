@@ -14,7 +14,7 @@ const isBuffer = require('is-buffer');
 const AV = require('av');
 require('mp3');
 
-module.exports = (buffer, opts, cb) => {
+module.exports = function audioDecode(buffer, opts, cb) {
 	if (opts instanceof Function) {
 		cb = opts;
 		opts = {};
