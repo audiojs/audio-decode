@@ -2,27 +2,17 @@
   "name": "audio-decode",
   "version": "1.4.0",
   "description": "Decode audio data in node or browser",
-  "main": "index.js",
+  "main": "audio-decode.js",
+  "type": "module",
   "dependencies": {
-    "audio-buffer-from": "^1.1.1",
-    "audio-context": "^1.0.1",
-    "audio-type": "^1.0.2",
-    "av": "^0.4.9",
-    "is-buffer": "^1.1.4",
-    "mp3": "^0.1.0",
-    "to-array-buffer": "^2.0.0",
-    "typedarray-to-buffer": "^3.1.2",
-    "wav-decoder": "^1.1.0"
+    "audio-buffer": "^5.0.0",
+    "audio-type": "^2.0.0",
+    "node-wav": "^0.0.2"
   },
-  "optionalDependencies": {},
   "devDependencies": {
     "audio-lena": "^2.0.0",
-    "audio-play": "^2.1.0",
     "audio-speaker": "^1.5.0",
-    "flac.js": "^0.2.1",
-    "ogg.js": "^0.1.0",
-    "tape": "^4.6.3",
-    "vorbis.js": "^0.1.1"
+    "tst": "^7.1.1"
   },
   "browser": "./browser.js",
   "scripts": {

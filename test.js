@@ -1,24 +1,23 @@
-'use strict';
 
-const decode = require('./');
-const wav = require('audio-lena/wav');
-const mp3 = require('audio-lena/mp3');
-const raw = require('audio-lena/raw');
-const context = require('audio-context')();
-const play = require('audio-play');
-const t = require('tape');
-const isBrowser = require('is-browser')
+import decode from './audio-decode.js';
+import wav from 'audio-lena/wav.js';
+import t, { is } from 'tst';
+// import mp3 from 'audio-lena/mp3';
+// import raw from 'audio-lena/raw';
+// import t from 'tape';
 
 
 //as a callback
-t('wav buffer', function (t) {
-	decode(wav, (err, audioBuffer) => {
-		try {
-			play(audioBuffer, {end: 2}, () => t.end());
-		} catch (e) {
-			throw e;
-		}
-	});
+t('wav buffer', async function (t) {
+	console.time('wav first')
+	let audioBuffer = await decode(wav)
+	console.timeEnd('wav first')
+	is(audioBuffer.duration | 0, 12, 'wav duration')
+
+	console.time('wav second')
+	audioBuffer = await decode(wav)
+	console.timeEnd('wav second')
+	is(audioBuffer.duration | 0, 12, 'wav duration')
 });
 
 t('mp3 buffer', function (t) {
@@ -32,30 +31,6 @@ t('mp3 buffer', function (t) {
 		}
 	});
 });
-
-isBrowser && t('File', t => {
-	decode(new File([mp3], 'lena.mp3'), (err, audioBuffer) => {
-		try {
-			play(audioBuffer, {end: 1}, () => {
-				t.end()
-			});
-		} catch (e) {
-			throw e;
-		}
-	});
-})
-
-isBrowser && t('Blob', t => {
-	decode(new Blob([mp3]), (err, audioBuffer) => {
-		try {
-			play(audioBuffer, {end: 1}, () => {
-				t.end()
-			});
-		} catch (e) {
-			throw e;
-		}
-	});
-})
 
 t('mp3 base64', t => {
 	decode(require('audio-lena/mp3-base64'), (err, buf) => {
