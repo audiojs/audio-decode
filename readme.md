@@ -12,6 +12,7 @@ Supported formats:
 * [ ] `alac`
 * [ ] `aac`
 * [ ] `m4a`
+* [x] [`qoa`](https://github.com/phoboslab/qoa)
 
 [![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
 

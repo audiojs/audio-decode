@@ -50,6 +50,10 @@ export const decoders = {
 		let module = await import('node-wav')
 		let { decode } = module.default
 		return (decoders.wav = buf => buf && createBuffer(decode(buf)) )(buf)
+	},
+	async qoa(buf) {
+		let { decode } = await import('qoa-format')
+		return (decoders.qoa = buf => buf && createBuffer(decode(buf)) )(buf)
 	}
 }
 
