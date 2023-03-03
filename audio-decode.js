@@ -47,7 +47,8 @@ export const decoders = {
 		return (decoders.opus = async buf => buf && createBuffer(await decoder.decodeFile(buf)))(buf)
 	},
 	async wav(buf) {
-		let {decode} = await import('node-wav')
+		let module = await import('node-wav')
+		let { decode } = module.default
 		return (decoders.wav = buf => buf && createBuffer(decode(buf)) )(buf)
 	}
 }
