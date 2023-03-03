@@ -24,7 +24,16 @@ let audioBuffer = await decode(buffer);
 
 `buffer` type can be: _ArrayBuffer_, _Uint8Array_ or _Buffer_.
 
-Since decoder's code is lazy, first run loads decoder's sources and compiles module (can be dry-run with empty buffer). Subsequent runs are fast.
+Decoder's code is lazy, first run loads decoder's sources and compiles module, subsequent runs are fast.
+
+To get more granular control over individual decoders, use `decoders`:
+
+```js
+import decode, {decoders} from 'audio-decode';
+
+await decoders.mp3(); // load & compile decoder
+const audioBuffer = await decoders.mp3(mp3buf); // decode
+```
 
 ## See also
 
