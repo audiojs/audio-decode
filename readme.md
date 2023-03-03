@@ -2,7 +2,16 @@
 
 Decode audio data from supported format to [AudioBuffer](https://github.com/audiojs/audio-buffer).
 
-Supported formats: `wav`, `mp3`, `ogg/vorbis`, `flac`, `alac`, `aac`, `m4a`, `opus`.
+Supported formats:
+
+* [x] `wav`
+* [ ] `mp3`
+* [ ] `ogg/vorbis`
+* [ ] `opus`
+* [ ] `flac`
+* [ ] `alac`
+* [ ] `aac`
+* [ ] `m4a`
 
 [![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
 
