@@ -22,13 +22,7 @@ import buffer from 'audio-lena/mp3';
 let audioBuffer = await decode(buffer);
 ```
 
-## API
-
-**`const audioBuffer = await decode(source)`**
-
-`source` type can be: _ArrayBuffer_, _Uint8Array_ or _Buffer_.
-
-To enable additional format, install it as a dependency `npm install --save flac.js` and require once `require('flac.js')`.
+`buffer` type can be: _ArrayBuffer_, _Uint8Array_ or _Buffer_.
 
 ## License
 
