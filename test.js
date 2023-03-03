@@ -4,6 +4,7 @@ import wav from 'audio-lena/wav.js';
 import mp3 from 'audio-lena/mp3.js';
 import ogg from 'audio-lena/ogg.js';
 import flac from 'audio-lena/flac.js';
+import opus from 'audio-lena/opus.js';
 import t, { is, throws } from 'tst';
 
 
@@ -53,6 +54,20 @@ t('flac buffer', async function (t) {
 	console.timeEnd('flac second')
 	is(audioBuffer.duration | 0, 12, 'flac duration')
 });
+
+
+t('opus buffer', async function (t) {
+	console.time('opus first')
+	let audioBuffer = await decode(opus)
+	console.timeEnd('opus first')
+	is(audioBuffer.duration | 0, 12, 'opus duration')
+
+	console.time('opus second')
+	audioBuffer = await decode(opus)
+	console.timeEnd('opus second')
+	is(audioBuffer.duration | 0, 12, 'opus duration')
+});
+
 
 t('malformed data', async t => {
 	let log = []
