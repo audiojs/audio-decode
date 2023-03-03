@@ -24,6 +24,8 @@ let audioBuffer = await decode(buffer);
 
 `buffer` type can be: _ArrayBuffer_, _Uint8Array_ or _Buffer_.
 
+Since decoder's code is lazy, first run loads decoder's sources and compiles module (can be dry-run with empty buffer). Subsequent runs are fast.
+
 ## See also
 
 * [Wasm-audio-decoders](https://github.com/eshaz/wasm-audio-decoders) – best in class compact & fast WASM audio decoders.
