@@ -2,6 +2,7 @@
 import decode from './audio-decode.js';
 import wav from 'audio-lena/wav.js';
 import mp3 from 'audio-lena/mp3.js';
+import ogg from 'audio-lena/ogg.js';
 import t, { is } from 'tst';
 
 
@@ -28,6 +29,18 @@ t('mp3 buffer', async function (t) {
 	audioBuffer = await decode(mp3)
 	console.timeEnd('mp3 second')
 	is(audioBuffer.duration | 0, 12, 'mp3 duration')
+});
+
+t('ogg buffer', async function (t) {
+	console.time('ogg first')
+	let audioBuffer = await decode(ogg)
+	console.timeEnd('ogg first')
+	is(audioBuffer.duration | 0, 12, 'ogg duration')
+
+	console.time('ogg second')
+	audioBuffer = await decode(ogg)
+	console.timeEnd('ogg second')
+	is(audioBuffer.duration | 0, 12, 'ogg duration')
 });
 
 t('decode error', t => {

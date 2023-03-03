@@ -5,6 +5,7 @@
   "main": "audio-decode.js",
   "type": "module",
   "dependencies": {
+    "@wasm-audio-decoders/ogg-vorbis": "^0.0.1",
     "audio-buffer": "^5.0.0",
     "audio-type": "^2.0.0",
     "mpg123-decoder": "^0.4.3",

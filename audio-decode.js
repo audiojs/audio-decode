@@ -22,9 +22,11 @@ export default async function audioDecode (buf, opts) {
 };
 
 export const decoders = {
-	async ogg() {
-		let { OggVorbisDecoder } = await import('ogg')
-		decoder = new OggVorbisDecoder()
+	async oga(buf) {
+		let { OggVorbisDecoder } = await import('@wasm-audio-decoders/ogg-vorbis')
+		const decoder = new OggVorbisDecoder()
+		await decoder.ready;
+		return (decoders.oga = async buf => createBuffer(await decoder.decodeFile(buf)))(buf)
 	},
 	async mp3(buf) {
 		const { MPEGDecoder } = await import('mpg123-decoder')

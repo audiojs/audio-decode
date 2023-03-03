@@ -5,8 +5,8 @@ Decode audio data from supported format to [AudioBuffer](https://github.com/audi
 Supported formats:
 
 * [x] `wav`
-* [ ] `mp3`
-* [ ] `ogg/vorbis`
+* [x] `mp3`
+* [x] `ogg/vorbis`
 * [ ] `opus`
 * [ ] `flac`
 * [ ] `alac`
