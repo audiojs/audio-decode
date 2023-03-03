@@ -1,6 +1,6 @@
 {
   "name": "audio-decode",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "Decode audio data in node or browser",
   "main": "audio-decode.js",
   "type": "module",
@@ -37,7 +37,9 @@
     "codec",
     "mp3",
     "wav",
-    "ogg", "vorbis", "opus",
+    "ogg",
+    "vorbis",
+    "opus",
     "web-audio"
   ],
   "author": "ΔY <dfcreative@gmail.com>",
