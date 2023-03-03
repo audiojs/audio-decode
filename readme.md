@@ -24,7 +24,11 @@ let audioBuffer = await decode(buffer);
 
 `buffer` type can be: _ArrayBuffer_, _Uint8Array_ or _Buffer_.
 
-## Alternative
+## See also
+
+* [Wasm-audio-decoders](https://github.com/eshaz/wasm-audio-decoders) – best in class compact & fast WASM audio decoders.
+* [AudioDecoder](https://developer.mozilla.org/en-US/docs/Web/API/AudioDecoder) – native decoders API, hope one day will be fixed or alternatively polyfilled.
+* [decodeAudioData](https://github.com/eshaz/wasm-audio-decoders) – default in-browser decoding method.
 
 ## License
 

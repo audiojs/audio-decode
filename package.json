@@ -31,9 +31,13 @@
     "audio",
     "dsp",
     "decode",
+    "audio decode",
+    "audio decoder",
+    "web audio decoder",
     "codec",
     "mp3",
     "wav",
+    "ogg", "vorbis", "opus",
     "web-audio"
   ],
   "author": "ΔY <dfcreative@gmail.com>",
