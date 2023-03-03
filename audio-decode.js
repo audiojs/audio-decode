@@ -23,12 +23,14 @@ export default async function audioDecode (buf, opts) {
 
 export const decoders = {
 	async ogg() {
-		let { OggVorbisDecoder } = await importDecoder('ogg')
+		let { OggVorbisDecoder } = await import('ogg')
 		decoder = new OggVorbisDecoder()
 	},
-	async mp3() {
-		let { MPEGDecoder } = await importDecoder('mp3')
-		let decoder = new MPEGDecoder()
+	async mp3(buf) {
+		const { MPEGDecoder } = await import('mpg123-decoder')
+		const decoder = new MPEGDecoder()
+		await decoder.ready;
+		return (decoders.mp3 = buf => createBuffer(decoder.decode(buf)))(buf)
 	},
 	async flac() {
 
@@ -36,7 +38,6 @@ export const decoders = {
 		decoder = new FLACDecoder().decodeFile
 	},
 	async opus() {
-
 		let { OpusDecoder } = await importDecoder('opus')
 		decoder = new OpusDecoder().decode
 	},
