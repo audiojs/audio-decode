@@ -26,5 +26,5 @@ let audioBuffer = await decode(buffer);
 
 ## License
 
-[MIT](LICENSE) &copy; <a href="https://github.com/audiojs">audiojs</a> <p align=right><a href="https://github.com/krishnized/license/">🕉</a></p>
+[MIT](LICENSE)&nbsp;&nbsp;•&nbsp;&nbsp;<a href="https://github.com/krishnized/license/">🕉</a>
 
