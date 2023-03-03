@@ -3,7 +3,8 @@ import decode from './audio-decode.js';
 import wav from 'audio-lena/wav.js';
 import mp3 from 'audio-lena/mp3.js';
 import ogg from 'audio-lena/ogg.js';
-import t, { is } from 'tst';
+import flac from 'audio-lena/flac.js';
+import t, { is, throws } from 'tst';
 
 
 //as a callback
@@ -43,21 +44,27 @@ t('ogg buffer', async function (t) {
 	is(audioBuffer.duration | 0, 12, 'ogg duration')
 });
 
-t('decode error', t => {
-	decode(new Float32Array(10)).then(data => {
-		t.fail(data)
-	}, err => {
-		t.ok(err)
-	})
+t('flac buffer', async function (t) {
+	console.time('flac first')
+	let audioBuffer = await decode(flac)
+	console.timeEnd('flac first')
+	is(audioBuffer.duration | 0, 12, 'flac duration')
 
-	decode(null).then(data => {
-		t.fail(data)
-	}, err => {
-		t.ok(err)
-	})
+	console.time('flac second')
+	audioBuffer = await decode(flac)
+	console.timeEnd('flac second')
+	is(audioBuffer.duration | 0, 12, 'flac duration')
+});
 
-	decode(require('audio-lena/mp3-base64') + 'xxx', (err, buf) => {
-		t.ok(err)
-		t.end()
-	})
+t('malformed data', async t => {
+	let log = []
+	try {
+		let x = await decode(new Float32Array(10))
+	} catch (e) { log.push('arr')}
+
+	try {
+		let x = await decode(null)
+	} catch (e) { log.push('null')}
+
+	is(log, ['arr', 'null'])
 })

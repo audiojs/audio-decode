@@ -6,9 +6,9 @@ Supported formats:
 
 * [x] `wav`
 * [x] `mp3`
-* [x] `ogg/vorbis`
-* [ ] `opus`
-* [ ] `flac`
+* [x] `ogg vorbis`
+* [x] `flac`
+* [x] `opus`
 * [ ] `alac`
 * [ ] `aac`
 * [ ] `m4a`
@@ -23,6 +23,8 @@ let audioBuffer = await decode(buffer);
 ```
 
 `buffer` type can be: _ArrayBuffer_, _Uint8Array_ or _Buffer_.
+
+## Alternative
 
 ## License
 

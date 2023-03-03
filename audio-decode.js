@@ -34,14 +34,17 @@ export const decoders = {
 		await decoder.ready;
 		return (decoders.mp3 = buf => createBuffer(decoder.decode(buf)))(buf)
 	},
-	async flac() {
-
-		let { FLACDecoder } = await importDecoder('flac')
-		decoder = new FLACDecoder().decodeFile
+	async flac(buf) {
+		const { FLACDecoder } = await import('@wasm-audio-decoders/flac')
+		const decoder = new FLACDecoder()
+		await decoder.ready;
+		return (decoders.mp3 = async buf => createBuffer(await decoder.decode(buf)))(buf)
 	},
-	async opus() {
-		let { OpusDecoder } = await importDecoder('opus')
-		decoder = new OpusDecoder().decode
+	async opus(buf) {
+		const { OggOpusDecoder } = await import('ogg-opus-decoder')
+		const decoder = new OggOpusDecoder()
+		await decoder.ready;
+		return (decoders.opus = async buf => createBuffer(await decoder.decodeFile(buf)))(buf)
 	},
 	async wav(buf) {
 		let {decode} = await import('node-wav')
