@@ -16,7 +16,6 @@
   },
   "devDependencies": {
     "audio-lena": "^2.2.1",
-    "audio-speaker": "^1.5.0",
     "base64-arraybuffer": "^1.0.2",
     "tst": "^7.1.1"
   },
