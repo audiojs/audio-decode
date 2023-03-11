@@ -38,9 +38,10 @@ const audioBuffer = await decoders.mp3(mp3buf); // decode
 
 ## See also
 
-* [Wasm-audio-decoders](https://github.com/eshaz/wasm-audio-decoders) – best in class compact & fast WASM audio decoders.
-* [AudioDecoder](https://developer.mozilla.org/en-US/docs/Web/API/AudioDecoder) – native decoders API, hope one day will be fixed or alternatively polyfilled.
+* [wasm-audio-decoders](https://github.com/eshaz/wasm-audio-decoders) – best in class compact & fast WASM audio decoders.
+* [Web Audio Decoders](https://developer.mozilla.org/en-US/docs/Web/API/AudioDecoder) – native decoders API, hope one day will be fixed or alternatively polyfilled.
 * [decodeAudioData](https://github.com/eshaz/wasm-audio-decoders) – default in-browser decoding method.
+* [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) – ultimate encoding/decoding library (8.5Mb of code).
 
 ## License
 
