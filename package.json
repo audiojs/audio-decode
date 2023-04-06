@@ -1,6 +1,6 @@
 {
   "name": "audio-decode",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Decode audio data in node or browser",
   "main": "audio-decode.js",
   "type": "module",
