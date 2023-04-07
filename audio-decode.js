@@ -9,7 +9,7 @@ import AudioBufferShim from 'audio-buffer';
 const AudioBuffer = globalThis.AudioBuffer || AudioBufferShim
 
 export default async function audioDecode (buf) {
-	if (!buf) throw Error('No decode target')
+	if (!buf && !(buf.length || buf.buffer)) throw Error('Bad decode target')
 	buf = new Uint8Array(buf.buffer || buf)
 
 	let type = getType(buf);

@@ -91,5 +91,9 @@ t('malformed data', async t => {
 		let x = await decodeAudio(null)
 	} catch (e) { log.push('null')}
 
-	is(log, ['arr', 'null'])
+	try {
+		let x = await decodeAudio(Promise.resolve())
+	} catch (e) { log.push('nonbuf')}
+
+	is(log, ['arr', 'null', 'nonbuf'])
 })
