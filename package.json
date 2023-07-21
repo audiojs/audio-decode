@@ -3,6 +3,7 @@
   "version": "2.1.3",
   "description": "Decode audio data in node or browser",
   "main": "audio-decode.js",
+  "module: "audio-decode.js",
   "type": "module",
   "dependencies": {
     "@wasm-audio-decoders/flac": "^0.1.8",
