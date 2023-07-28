@@ -17,10 +17,10 @@ Supported formats:
 [![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
 
 ```js
-import decodeAudio from 'audio-decode';
+import audioDecode from 'audio-decode';
 import buffer from 'audio-lena/mp3';
 
-let audioBuffer = await decode(buffer);
+let audioBuffer = await audioDecode(buffer);
 ```
 
 `buffer` type can be: _ArrayBuffer_, _Uint8Array_ or _Buffer_.
@@ -30,10 +30,23 @@ Decoder's code is lazy: first run loads decoder's sources and compiles module be
 To get more granular control over individual decoders, use `decoders`:
 
 ```js
-import decode, {decoders} from 'audio-decode';
+import {decoders} from 'audio-decode';
 
 await decoders.mp3(); // load & compile decoder
 const audioBuffer = await decoders.mp3(mp3buf); // decode
+```
+
+## Decode under a specific audio context
+
+Because different audio contexts may use different implementations of the AudioBuffer,
+it is sometimes necessary to decode audio under a specific context.
+This can be done by providing a second argument to `audioDecode`
+to specify the context:
+
+```js
+import audioDecode from 'audio-decode';
+
+let audioBuffer = await audioDecode(buffer, audioContext);
 ```
 
 ## See also
