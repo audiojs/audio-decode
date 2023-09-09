@@ -6,9 +6,16 @@
 import getType from 'audio-type';
 import AudioBufferShim from 'audio-buffer';
 
-const AudioBuffer = globalThis.AudioBuffer || AudioBufferShim
+const AudioBuffer = globalThis.AudioBuffer || AudioBufferShim;
 
-export default async function audioDecode (buf) {
+/**
+ * Decode an audio buffer.
+ *
+ * @param {ArrayBuffer | Uint8Array} buf - The audio data to decode.
+ * @returns {Promise<AudioBuffer>} A promise that resolves to the decoded audio buffer.
+ * @throws {Error} Throws an error if the decode target is invalid or if the audio format is not supported.
+ */
+export default async function audioDecode(buf) {
 	if (!buf && !(buf.length || buf.buffer)) throw Error('Bad decode target')
 	buf = new Uint8Array(buf.buffer || buf)
 
@@ -49,15 +56,15 @@ export const decoders = {
 	async wav(buf) {
 		let module = await import('node-wav')
 		let { decode } = module.default
-		return (decoders.wav = buf => buf && createBuffer(decode(buf)) )(buf)
+		return (decoders.wav = buf => buf && createBuffer(decode(buf)))(buf)
 	},
 	async qoa(buf) {
 		let { decode } = await import('qoa-format')
-		return (decoders.qoa = buf => buf && createBuffer(decode(buf)) )(buf)
+		return (decoders.qoa = buf => buf && createBuffer(decode(buf)))(buf)
 	}
 }
 
-function createBuffer({channelData, sampleRate}) {
+function createBuffer({ channelData, sampleRate }) {
 	let audioBuffer = new AudioBuffer({
 		sampleRate,
 		length: channelData[0].length,
