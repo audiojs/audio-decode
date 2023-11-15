@@ -6,6 +6,7 @@
   "module": "audio-decode.js",
   "browser": "audio-decode.js",
   "type": "module",
+  "types": "audio-decode.d.ts",
   "dependencies": {
     "@wasm-audio-decoders/flac": "^0.2.1",
     "@wasm-audio-decoders/ogg-vorbis": "^0.1.12",
