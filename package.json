@@ -8,19 +8,19 @@
   "type": "module",
   "types": "audio-decode.d.ts",
   "dependencies": {
-    "@wasm-audio-decoders/flac": "^0.2.1",
-    "@wasm-audio-decoders/ogg-vorbis": "^0.1.12",
+    "@wasm-audio-decoders/flac": "^0.2.4",
+    "@wasm-audio-decoders/ogg-vorbis": "^0.1.15",
     "audio-buffer": "^5.0.0",
     "audio-type": "^2.2.1",
-    "mpg123-decoder": "^0.4.10",
+    "mpg123-decoder": "^1.0.0",
     "node-wav": "^0.0.2",
-    "ogg-opus-decoder": "^1.6.8",
+    "ogg-opus-decoder": "^1.6.12",
     "qoa-format": "^1.0.1"
   },
   "devDependencies": {
     "audio-lena": "^2.3.0",
     "base64-arraybuffer": "^1.0.2",
-    "tst": "^7.1.1"
+    "tst": "^7.3.0"
   },
   "scripts": {
     "test": "node test.js"
