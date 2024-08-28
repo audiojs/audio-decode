@@ -25,7 +25,7 @@ let audioBuffer = await decode(buffer);
 
 `buffer` type can be: _ArrayBuffer_, _Uint8Array_ or _Buffer_.
 
-Decode is lazy: first call prepares decoder.
+`decode` is lazy: first call prepares decoder.
 
 To get more granular control over individual decoders, use `decoders`:
 
