@@ -6,7 +6,11 @@
   "main": "audio-decode.js",
   "types": "audio-decode.d.ts",
   "exports": {
-    ".": "./audio-decode.js",
+    ".": {
+      "browser": "./audio-decode.js",
+      "node": "./audio-decode.js",
+      "default": "./audio-decode.js"
+    },
     "./package.json": "./package.json"
   },
   "dependencies": {
