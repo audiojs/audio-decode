@@ -1,7 +1,5 @@
 # audio-decode [![test](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml/badge.svg)](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml)
 
-> Minimal & fast audio decoders.
-
 Decode any audio format to raw samples in node or browser.<br>
 No ffmpeg, no native bindings, no format-specific code.<br>
 Returns `{ channelData, sampleRate }`.
