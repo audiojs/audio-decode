@@ -1,6 +1,8 @@
 # audio-decode [![test](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml/badge.svg)](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml)
 
-Decode audio data in node or browser. Returns `{ channelData, sampleRate }`, where `channelData` is an array of `Float32Array` PCM channels.
+> Any audio → PCM samples.
+
+Decode any audio format to raw samples in node or browser. No ffmpeg, no native bindings, no format-specific code. Returns `{ channelData, sampleRate }`.
 
 ESM-only package:
 
