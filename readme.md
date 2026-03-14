@@ -1,49 +1,68 @@
-# audio-decode [![test](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml/badge.svg)](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml) [![stable](https://img.shields.io/badge/stability-unstable-green.svg)](http://github.com/badges/stability-badges)
+# audio-decode [![test](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml/badge.svg)](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml)
 
-Decode audio data from supported format to [AudioBuffer](https://github.com/audiojs/audio-buffer).
+Decode audio data in node or browser. Returns `{ channelData, sampleRate }`.
 
-Supported formats:
-
-* [x] `wav`
-* [x] `mp3`
-* [x] `ogg vorbis`
-* [x] `flac`
-* [x] `opus`
-* [ ] `alac`
-* [ ] `aac`
-* [ ] `m4a`
-* [x] [`qoa`](https://github.com/phoboslab/qoa)
+Supported formats: `wav`, `mp3`, `ogg vorbis`, `flac`, `opus`, `m4a`/`aac`, [`qoa`](https://github.com/phoboslab/qoa).
 
 [![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
 
-```js
-import decodeAudio from 'audio-decode';
-import buffer from 'audio-lena/mp3';
+### Whole-file decode
 
-let audioBuffer = await decode(buffer);
+Auto-detects format. Input can be _ArrayBuffer_, _Uint8Array_, or _Buffer_.
+
+```js
+import decode from 'audio-decode';
+
+const { channelData, sampleRate } = await decode(mp3buf);
 ```
 
-`buffer` type can be: _ArrayBuffer_, _Uint8Array_ or _Buffer_.
+### Streaming decode
 
-`decode` is lazy: first call prepares decoder.
-
-To get more granular control over individual decoders, use `decoders`:
+Use `decoders` for chunk-by-chunk decoding.
 
 ```js
-import decode, {decoders} from 'audio-decode';
+import { decoders } from 'audio-decode';
 
-await decoders.mp3(); // load & compile decoder
-const audioBuffer = await decoders.mp3(mp3buf); // decode
+const decoder = await decoders.mp3();
+const a = await decoder.decode(chunk1);  // { channelData, sampleRate }
+const b = await decoder.decode(chunk2);
+const c = await decoder.decode();        // flush + free
+```
+
+Call `.free()` to release resources without flushing:
+
+```js
+decoder.free();
+```
+
+### Stream decoding
+
+Decode a `ReadableStream` or async iterable:
+
+```js
+import { decodeStream } from 'audio-decode';
+
+for await (const { channelData, sampleRate } of decodeStream(stream, 'mp3')) {
+  // process each decoded chunk
+}
+```
+
+### Custom decoders
+
+The `decoders` registry is extensible:
+
+```js
+import { decoders } from 'audio-decode';
+decoders.myformat = async () => ({ decode: chunk => ..., free() {} });
 ```
 
 ## See also
 
-* [wasm-audio-decoders](https://github.com/eshaz/wasm-audio-decoders) – best in class compact & fast WASM audio decoders.
-* [Web Audio Decoders](https://developer.mozilla.org/en-US/docs/Web/API/AudioDecoder) – native decoders API, hope one day will be fixed or alternatively polyfilled.
-* [decodeAudioData](https://github.com/eshaz/wasm-audio-decoders) – default in-browser decoding method.
-* [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) – ultimate encoding/decoding library (8.5Mb of code).
+* [wasm-audio-decoders](https://github.com/eshaz/wasm-audio-decoders) – compact & fast WASM audio decoders.
+* [AudioDecoder](https://developer.mozilla.org/en-US/docs/Web/API/AudioDecoder) – native WebCodecs decoder API.
+* [decodeAudioData](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/decodeAudioData) – built-in browser decoding method.
+* [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) – full encoding/decoding library.
 
 ## License
 
 [MIT](LICENSE)&nbsp;&nbsp;•&nbsp;&nbsp;<a href="https://github.com/krishnized/license/">🕉</a>
-
