@@ -41,7 +41,7 @@ export default async function decode(src) {
 /**
  * Decode a ReadableStream of audio chunks
  * @param {ReadableStream} stream - stream of Uint8Array chunks
- * @param {string} format - codec name (mp3, flac, opus, oga, wav, qoa)
+ * @param {string} format - codec name (mp3, flac, opus, oga, m4a, wav, qoa)
  * @returns {AsyncGenerator<{channelData: Float32Array[], sampleRate: number}>}
  */
 export async function* decodeStream(stream, format) {

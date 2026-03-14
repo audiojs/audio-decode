@@ -1,6 +1,12 @@
 # audio-decode [![test](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml/badge.svg)](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml)
 
-Decode audio data in node or browser. Returns `{ channelData, sampleRate }`.
+Decode audio data in node or browser. Returns `{ channelData, sampleRate }`, where `channelData` is an array of `Float32Array` PCM channels.
+
+ESM-only package:
+
+```js
+import decode from 'audio-decode';
+```
 
 Supported formats: `wav`, `mp3`, `ogg vorbis`, `flac`, `opus`, `m4a`/`aac`, [`qoa`](https://github.com/phoboslab/qoa).
 
@@ -16,9 +22,9 @@ import decode from 'audio-decode';
 const { channelData, sampleRate } = await decode(mp3buf);
 ```
 
-### Streaming decode
+### Chunked decoding
 
-Use `decoders` for chunk-by-chunk decoding.
+Use `decoders` for chunk-by-chunk decoding when you already know the codec.
 
 ```js
 import { decoders } from 'audio-decode';
@@ -37,7 +43,7 @@ decoder.free();
 
 ### Stream decoding
 
-Decode a `ReadableStream` or async iterable:
+Decode a `ReadableStream` or async iterable when you already know the codec:
 
 ```js
 import { decodeStream } from 'audio-decode';
@@ -46,6 +52,12 @@ for await (const { channelData, sampleRate } of decodeStream(stream, 'mp3')) {
   // process each decoded chunk
 }
 ```
+
+Available stream codec keys: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`.
+
+AAC-in-M4A/MP4 stream decoding is available through `decoders.m4a()` and `decodeStream(stream, 'm4a')`.
+
+There is no separate `decoders.aac()` or `decodeStream(stream, 'aac')` alias.
 
 ### Custom decoders
 

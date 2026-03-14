@@ -8,6 +8,7 @@ import t, { is } from 'tst';
 import { readFileSync } from 'fs';
 
 const qoa = readFileSync(new URL('./fixtures/qoa-sample.qoa', import.meta.url))
+const m4a = readFileSync(new URL('../audio-lena/lena.m4a', import.meta.url))
 
 const dur = r => r.channelData[0].length / r.sampleRate
 const rms = f32 => { let s = 0; for (let i = 0; i < f32.length; i++) s += f32[i] * f32[i]; return Math.sqrt(s / f32.length) }
@@ -54,7 +55,6 @@ t('opus', async () => {
 })
 
 t('m4a', async () => {
-	let m4a = readFileSync(new URL('../audio-lena/lena.m4a', import.meta.url))
 	let r = await decode(m4a)
 	is(r.channelData.length, 2)
 	is(r.sampleRate, 44100)
@@ -114,6 +114,15 @@ t('stream oga', async () => {
 	let dec = await decoders.oga()
 	let r = await dec.decode(new Uint8Array(ogg))
 	is(r.channelData[0].length > 0, true)
+	await dec.decode()
+})
+
+t('stream m4a', async () => {
+	let dec = await decoders.m4a()
+	let r = await dec.decode(new Uint8Array(m4a))
+	is(r.channelData.length > 0, true)
+	is(r.channelData[0].length > 0, true)
+	is(r.sampleRate, 44100)
 	await dec.decode()
 })
 
@@ -247,6 +256,16 @@ t('decodeStream ReadableStream', async () => {
 	})
 	let total = 0
 	for await (let r of decodeStream(stream, 'wav')) {
+		is(r.sampleRate, 44100)
+		total += r.channelData[0].length
+	}
+	is(total > 0, true)
+})
+
+t('decodeStream m4a', async () => {
+	async function* gen() { yield new Uint8Array(m4a) }
+	let total = 0
+	for await (let r of decodeStream(gen(), 'm4a')) {
 		is(r.sampleRate, 44100)
 		total += r.channelData[0].length
 	}
