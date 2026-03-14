@@ -2,7 +2,6 @@
 
 Decode any audio format to raw samples in node or browser.<br>
 No ffmpeg, no native bindings, no format-specific code.<br>
-Returns `{ channelData, sampleRate }`.
 
 [![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
 
