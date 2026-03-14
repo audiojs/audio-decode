@@ -1,18 +1,25 @@
 # audio-decode [![test](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml/badge.svg)](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml)
 
-> Any audio → PCM samples.
+> Minimal & fast audio decoders layer.
 
-Decode any audio format to raw samples in node or browser. No ffmpeg, no native bindings, no format-specific code. Returns `{ channelData, sampleRate }`.
+Decode any audio format to raw samples in node or browser.<br>
+No ffmpeg, no native bindings, no format-specific code.<br>
+Returns `{ channelData, sampleRate }`.
 
-ESM-only package:
+[![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
 
 ```js
 import decode from 'audio-decode';
 ```
 
-Supported formats: `wav`, `mp3`, `ogg vorbis`, `flac`, `opus`, `m4a`/`aac`, [`qoa`](https://github.com/phoboslab/qoa).
-
-[![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
+Supported formats:
+* `wav`
+* `mp3`
+* `ogg vorbis`
+* `flac`
+* `opus`
+* `m4a`/`aac`
+* [`qoa`](https://github.com/phoboslab/qoa).
 
 ### Whole-file decode
 
