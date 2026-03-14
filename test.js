@@ -8,7 +8,7 @@ import t, { is } from 'tst';
 import { readFileSync } from 'fs';
 
 const qoa = readFileSync(new URL('./fixtures/qoa-sample.qoa', import.meta.url))
-const m4a = readFileSync(new URL('../audio-lena/lena.m4a', import.meta.url))
+const m4a = readFileSync(new URL(import.meta.resolve('audio-lena/lena.m4a')))
 
 const dur = r => r.channelData[0].length / r.sampleRate
 const rms = f32 => { let s = 0; for (let i = 0; i < f32.length; i++) s += f32[i] * f32[i]; return Math.sqrt(s / f32.length) }
