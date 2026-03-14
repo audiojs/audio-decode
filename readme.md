@@ -1,10 +1,7 @@
 # audio-decode [![test](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml/badge.svg)](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml)
 
-> Minimal & fast audio decoders layer.
-
 Decode any audio format to raw samples in node or browser.<br>
 No ffmpeg, no native bindings, no format-specific code.<br>
-Returns `{ channelData, sampleRate }`.
 
 [![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
 
@@ -23,22 +20,27 @@ Supported formats:
 
 ### Whole-file decode
 
-Auto-detects format. Input can be _ArrayBuffer_, _Uint8Array_, or _Buffer_.
+Auto-detects format from content. Input can be _ArrayBuffer_, _Uint8Array_, or _Buffer_.
 
 ```js
 import decode from 'audio-decode';
 
-const { channelData, sampleRate } = await decode(mp3buf);
+const { channelData, sampleRate } = await decode(anyAudioBuffer);
+// format detected automatically — works with any supported codec
 ```
 
 ### Chunked decoding
 
-Use `decoders` for chunk-by-chunk decoding when you already know the codec.
+For chunk-by-chunk decoding, specify the codec upfront:
 
 ```js
 import { decoders } from 'audio-decode';
+import audioType from 'audio-type';
 
-const decoder = await decoders.mp3();
+// autodetect format
+const format = audioType(firstChunk);        // 'mp3', 'flac', etc.
+const decoder = await decoders[format]();
+
 const a = await decoder.decode(chunk1);  // { channelData, sampleRate }
 const b = await decoder.decode(chunk2);
 const c = await decoder.decode();        // flush + free
@@ -52,7 +54,7 @@ decoder.free();
 
 ### Stream decoding
 
-Decode a `ReadableStream` or async iterable when you already know the codec:
+Decode a `ReadableStream` or async iterable:
 
 ```js
 import { decodeStream } from 'audio-decode';
@@ -62,11 +64,9 @@ for await (const { channelData, sampleRate } of decodeStream(stream, 'mp3')) {
 }
 ```
 
-Available stream codec keys: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`.
+Available codec keys: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`.
 
-AAC-in-M4A/MP4 stream decoding is available through `decoders.m4a()` and `decodeStream(stream, 'm4a')`.
-
-There is no separate `decoders.aac()` or `decodeStream(stream, 'aac')` alias.
+M4A/AAC stream decoding uses the `m4a` key — there is no separate `aac` alias.
 
 ### Custom decoders
 
