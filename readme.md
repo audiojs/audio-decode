@@ -54,13 +54,8 @@ const decoder = await decoders[format]();
 
 const a = await decoder.decode(chunk1);  // { channelData, sampleRate }
 const b = await decoder.decode(chunk2);
-const c = await decoder.decode();        // flush + free
-```
-
-Call `.free()` to release resources without flushing:
-
-```js
-decoder.free();
+const c = await decoder.flush();         // remaining samples
+decoder.free();                          // release resources
 ```
 
 ### Stream decoding

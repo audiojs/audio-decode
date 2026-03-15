@@ -145,25 +145,22 @@ export const decoders = {
 /**
  * StreamDecoder: unified interface
  * .decode(chunk) — decode data, returns { channelData, sampleRate }
- * .decode()      — flush remaining + free resources
- * .free()        — free resources without flushing
+ * .flush()       — flush remaining samples
+ * .free()        — release resources
  */
 function streamDecoder(onDecode, onFlush, onFree) {
 	let done = false
 	return {
 		async decode(chunk) {
-			if (chunk?.length) {
-				if (done) throw Error('Decoder already freed')
-				try { return norm(await onDecode(chunk)) }
-				catch (e) { done = true; onFree?.(); throw e }
-			}
+			if (!chunk?.length) { let r = await this.flush(); this.free(); return r }
+			if (done) throw Error('Decoder already freed')
+			try { return norm(await onDecode(chunk)) }
+			catch (e) { done = true; onFree?.(); throw e }
+		},
+		async flush() {
 			if (done) return EMPTY
-			done = true
-			try {
-				let result = onFlush ? norm(await onFlush()) : EMPTY
-				onFree?.()
-				return result
-			} catch (e) { onFree?.(); throw e }
+			try { return onFlush ? norm(await onFlush()) : EMPTY }
+			catch (e) { done = true; onFree?.(); throw e }
 		},
 		free() {
 			if (done) return
