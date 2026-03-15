@@ -41,7 +41,7 @@ export default async function decode(src) {
 /**
  * Decode a ReadableStream of audio chunks
  * @param {ReadableStream} stream - stream of Uint8Array chunks
- * @param {string} format - codec name (mp3, flac, opus, oga, m4a, wav, qoa)
+ * @param {string} format - codec name (mp3, flac, opus, oga, m4a, wav, qoa, aac, aiff, caf, webm, amr, wma)
  * @returns {AsyncGenerator<{channelData: Float32Array[], sampleRate: number}>}
  */
 export async function* decodeStream(stream, format) {
@@ -90,7 +90,7 @@ export const decoders = {
 	},
 
 	async m4a() {
-		const { decoder } = await import('aac-decode')
+		const { decoder } = await import('@audio/aac-decode')
 		let dec = await decoder()
 		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
 	},
@@ -103,6 +103,42 @@ export const decoders = {
 	async qoa() {
 		let { decode } = await import('qoa-format')
 		return streamDecoder(chunk => decode(chunk))
+	},
+
+	async aac() {
+		const { decoder } = await import('@audio/aac-decode')
+		let dec = await decoder()
+		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
+	},
+
+	async aiff() {
+		const { decoder } = await import('@audio/aiff-decode')
+		let dec = await decoder()
+		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
+	},
+
+	async caf() {
+		const { decoder } = await import('@audio/caf-decode')
+		let dec = await decoder()
+		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
+	},
+
+	async webm() {
+		const { decoder } = await import('@audio/webm-decode')
+		let dec = await decoder()
+		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
+	},
+
+	async amr() {
+		const { decoder } = await import('@audio/amr-decode')
+		let dec = await decoder()
+		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
+	},
+
+	async wma() {
+		const { decoder } = await import('@audio/wma-decode')
+		let dec = await decoder()
+		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
 	},
 }
 
@@ -140,7 +176,11 @@ function streamDecoder(onDecode, onFlush, onFree) {
 // extract { channelData, sampleRate } from codec result
 function norm(r) {
 	if (!r?.channelData?.length) return EMPTY
-	return { channelData: r.channelData, sampleRate: r.sampleRate }
+	let { channelData, sampleRate, samplesDecoded } = r
+	if (samplesDecoded != null && samplesDecoded < channelData[0].length)
+		channelData = channelData.map(ch => ch.subarray(0, samplesDecoded))
+	if (!channelData[0]?.length) return EMPTY
+	return { channelData, sampleRate }
 }
 
 // merge two decode results

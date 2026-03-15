@@ -18,7 +18,7 @@ export default function decode(buf: ArrayBuffer | Uint8Array): Promise<AudioData
 /** Decode a ReadableStream of audio chunks. */
 export function decodeStream(
   stream: ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>,
-  format: 'mp3' | 'flac' | 'opus' | 'oga' | 'm4a' | 'wav' | 'qoa'
+  format: 'mp3' | 'flac' | 'opus' | 'oga' | 'm4a' | 'wav' | 'qoa' | 'aac' | 'aiff' | 'caf' | 'webm' | 'amr' | 'wma'
 ): AsyncGenerator<AudioData>;
 
 export declare const decoders: {
@@ -29,4 +29,10 @@ export declare const decoders: {
   m4a(): Promise<StreamDecoder>;
   wav(): Promise<StreamDecoder>;
   qoa(): Promise<StreamDecoder>;
+  aac(): Promise<StreamDecoder>;
+  aiff(): Promise<StreamDecoder>;
+  caf(): Promise<StreamDecoder>;
+  webm(): Promise<StreamDecoder>;
+  amr(): Promise<StreamDecoder>;
+  wma(): Promise<StreamDecoder>;
 };

@@ -1,22 +1,33 @@
 # audio-decode [![test](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml/badge.svg)](https://github.com/audiojs/audio-decode/actions/workflows/test.js.yml)
 
-Decode any audio format to raw samples in node or browser.<br>
-No ffmpeg, no native bindings, no format-specific code.<br>
+Decode any audio format to raw samples.<br>
+JS / WASM – no ffmpeg, no native bindings, works in both node and browser.<br>
+Small API, minimal size, near-native performance, lazy-loading, chunked decoding.
 
 [![npm install audio-decode](https://nodei.co/npm/audio-decode.png?mini=true)](https://npmjs.org/package/audio-decode/)
 
 ```js
 import decode from 'audio-decode';
+
+const { channelData, sampleRate } = await decode(anyAudioBuffer);
 ```
 
 Supported formats:
-* `wav`
-* `mp3`
-* `ogg vorbis`
-* `flac`
-* `opus`
-* `m4a`/`aac`
-* [`qoa`](https://github.com/phoboslab/qoa).
+
+| Format | Package | Engine |
+|--------|---------|--------|
+| MP3 | [mpg123-decoder](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/mpg123-decoder) | WASM |
+| WAV | [node-wav](https://www.npmjs.com/package/node-wav) | JS |
+| OGG Vorbis | [@wasm-audio-decoders/ogg-vorbis](https://github.com/eshaz/wasm-audio-decoders) | WASM |
+| FLAC | [@wasm-audio-decoders/flac](https://github.com/eshaz/wasm-audio-decoders) | WASM |
+| Opus | [ogg-opus-decoder](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder) | WASM |
+| M4A / AAC | [@audio/aac-decode](https://github.com/audiojs/aac-decode) | WASM |
+| QOA | [qoa-format](https://github.com/phoboslab/qoa) | JS |
+| AIFF | [@audio/aiff-decode](https://github.com/audiojs/aiff-decode) | JS |
+| CAF | [@audio/caf-decode](https://github.com/audiojs/caf-decode) | JS |
+| WebM | [@audio/webm-decode](https://github.com/audiojs/webm-decode) | JS + WASM |
+| AMR | [@audio/amr-decode](https://github.com/audiojs/amr-decode) | WASM |
+| WMA | [@audio/wma-decode](https://github.com/audiojs/wma-decode) | WASM |
 
 ### Whole-file decode
 
@@ -64,9 +75,7 @@ for await (const { channelData, sampleRate } of decodeStream(stream, 'mp3')) {
 }
 ```
 
-Available codec keys: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`.
-
-M4A/AAC stream decoding uses the `m4a` key — there is no separate `aac` alias.
+Available codec keys: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`, `aac`, `aiff`, `caf`, `webm`, `amr`, `wma`.
 
 ### Custom decoders
 
@@ -79,6 +88,7 @@ decoders.myformat = async () => ({ decode: chunk => ..., free() {} });
 
 ## See also
 
+* [audio-type](https://github.com/audiojs/audio-type) – detect audio format from buffer.
 * [wasm-audio-decoders](https://github.com/eshaz/wasm-audio-decoders) – compact & fast WASM audio decoders.
 * [AudioDecoder](https://developer.mozilla.org/en-US/docs/Web/API/AudioDecoder) – native WebCodecs decoder API.
 * [decodeAudioData](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/decodeAudioData) – built-in browser decoding method.
@@ -86,4 +96,6 @@ decoders.myformat = async () => ({ decode: chunk => ..., free() {} });
 
 ## License
 
-[MIT](LICENSE)&nbsp;&nbsp;•&nbsp;&nbsp;<a href="https://github.com/krishnized/license/">🕉</a>
+[MIT](LICENSE)
+
+<a href="https://github.com/krishnized/license/">ॐ</a>

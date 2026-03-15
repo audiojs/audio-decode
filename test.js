@@ -62,6 +62,15 @@ t('m4a', async () => {
 	is(rms(r.channelData[0]) > 0.05, true, 'has audio content')
 })
 
+t('m4a iPhone voice memo', async () => {
+	let hk = readFileSync(new URL('./fixtures/hk.m4a', import.meta.url))
+	let r = await decode(hk)
+	is(r.channelData.length, 1)
+	is(r.sampleRate, 48000)
+	is(near(dur(r), 2.35, 0.1), true, 'duration')
+	is(rms(r.channelData[0]) > 0.01, true, 'has audio content')
+})
+
 t('qoa', async () => {
 	let r = await decode(qoa)
 	is(near(dur(r), 0.82, 0.05), true, 'duration')
