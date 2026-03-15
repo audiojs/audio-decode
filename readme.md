@@ -12,7 +12,7 @@ import decode from 'audio-decode';
 const { channelData, sampleRate } = await decode(anyAudioBuffer);
 ```
 
-Supported formats:
+#### Supported formats:
 
 | Format | Package | Engine |
 |--------|---------|--------|
