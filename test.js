@@ -281,6 +281,21 @@ t('decodeStream m4a', async () => {
 	is(total > 0, true)
 })
 
+t('decodeStream m4a chunked', async () => {
+	// M4A needs full file (moov atom), so chunked streaming must buffer until flush
+	let buf = new Uint8Array(m4a), chunkSize = 16384
+	async function* gen() {
+		for (let off = 0; off < buf.length; off += chunkSize)
+			yield buf.subarray(off, Math.min(off + chunkSize, buf.length))
+	}
+	let total = 0
+	for await (let r of decodeStream(gen(), 'm4a')) {
+		total += r.channelData[0].length
+	}
+	let ref = await decode(m4a)
+	is(total, ref.channelData[0].length, 'chunked M4A matches one-shot')
+})
+
 t('decodeStream unknown format', async () => {
 	let threw = false
 	try { for await (let _ of decodeStream([], 'xyz')) {} } catch { threw = true }

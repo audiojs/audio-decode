@@ -14,19 +14,19 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
+    "@audio/aac-decode": "^1.0.2",
+    "@audio/aiff-decode": "^1.0.0",
+    "@audio/amr-decode": "^1.0.0",
+    "@audio/caf-decode": "^1.0.0",
+    "@audio/webm-decode": "^1.0.0",
+    "@audio/wma-decode": "^1.0.0",
     "@wasm-audio-decoders/flac": "^0.2.10",
     "@wasm-audio-decoders/ogg-vorbis": "^0.1.20",
-    "@audio/aac-decode": "^1.0.0",
     "audio-type": "^2.4.0",
     "mpg123-decoder": "^1.0.3",
     "node-wav": "^0.0.2",
     "ogg-opus-decoder": "^1.7.3",
-    "@audio/aiff-decode": "^1.0.0",
-    "@audio/amr-decode": "^1.0.0",
-    "@audio/caf-decode": "^1.0.0",
-    "qoa-format": "^1.0.1",
-    "@audio/webm-decode": "^1.0.0",
-    "@audio/wma-decode": "^1.0.0"
+    "qoa-format": "^1.0.1"
   },
   "devDependencies": {
     "audio-lena": "^2.3.0",

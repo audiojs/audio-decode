@@ -48,9 +48,20 @@ export async function* decodeStream(stream, format) {
 	if (!decoders[format]) throw Error('No decoder for ' + format)
 	let dec = await decoders[format]()
 	try {
-		for await (let chunk of stream) {
-			let result = await dec.decode(chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk))
-			if (result.channelData.length) yield result
+		// Safari ReadableStream doesn't support for-await, use getReader() if available
+		if (stream.getReader) {
+			let reader = stream.getReader()
+			while (true) {
+				let { done, value } = await reader.read()
+				if (done) break
+				let result = await dec.decode(value instanceof Uint8Array ? value : new Uint8Array(value))
+				if (result.channelData.length) yield result
+			}
+		} else {
+			for await (let chunk of stream) {
+				let result = await dec.decode(chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk))
+				if (result.channelData.length) yield result
+			}
 		}
 		let flushed = await dec.decode()
 		if (flushed.channelData.length) yield flushed
@@ -92,7 +103,28 @@ export const decoders = {
 	async m4a() {
 		const { decoder } = await import('@audio/aac-decode')
 		let dec = await decoder()
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
+		// M4A requires full file (moov atom can be at end), so buffer chunks until flush
+		let chunks = [], decoded = false
+		return streamDecoder(
+			chunk => {
+				// if chunk contains ftyp, try decoding as complete M4A
+				if (!decoded && chunk.length > 8 && chunk[4] === 0x66 && chunk[5] === 0x74 && chunk[6] === 0x79 && chunk[7] === 0x70) {
+					let r = dec.decode(chunk)
+					if (r.channelData.length) { decoded = true; chunks = null; return r }
+				}
+				if (!decoded) chunks.push(chunk)
+				return EMPTY
+			},
+			() => {
+				if (decoded || !chunks.length) return EMPTY
+				let total = chunks.reduce((a, c) => a + c.length, 0)
+				let buf = new Uint8Array(total), off = 0
+				for (let c of chunks) { buf.set(c, off); off += c.length }
+				chunks = null
+				return dec.decode(buf)
+			},
+			() => { chunks = null; dec.free() }
+		)
 	},
 
 	async wav() {
