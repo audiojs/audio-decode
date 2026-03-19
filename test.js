@@ -1,14 +1,17 @@
-import decode, { decoders, decodeStream } from './audio-decode.js';
-import wav from 'audio-lena/wav.js';
-import mp3 from 'audio-lena/mp3.js';
-import ogg from 'audio-lena/ogg.js';
-import flac from 'audio-lena/flac.js';
-import opus from 'audio-lena/opus.js';
+import decode, { decodeStream } from './audio-decode.js';
+import wav from 'audio-lena/wav';
+import mp3 from 'audio-lena/mp3';
+import ogg from 'audio-lena/ogg';
+import flac from 'audio-lena/flac';
+import opus from 'audio-lena/opus';
+import aiff from 'audio-lena/aiff';
+import caf from 'audio-lena/caf';
+import webm from 'audio-lena/webm';
 import t, { is } from 'tst';
+import m4a from 'audio-lena/m4a';
 import { readFileSync } from 'fs';
 
 const qoa = readFileSync(new URL('./fixtures/qoa-sample.qoa', import.meta.url))
-const m4a = readFileSync(new URL(import.meta.resolve('audio-lena/lena.m4a')))
 
 const dur = r => r.channelData[0].length / r.sampleRate
 const rms = f32 => { let s = 0; for (let i = 0; i < f32.length; i++) s += f32[i] * f32[i]; return Math.sqrt(s / f32.length) }
@@ -71,6 +74,29 @@ t('m4a iPhone voice memo', async () => {
 	is(rms(r.channelData[0]) > 0.01, true, 'has audio content')
 })
 
+t('aiff', async () => {
+	let r = await decode(aiff)
+	is(r.channelData.length, 1)
+	is(r.sampleRate, 44100)
+	is(near(dur(r), 12.27, 0.05), true, 'duration')
+	is(near(rms(r.channelData[0]), 0.13, 0.01), true, 'rms')
+})
+
+t('caf', async () => {
+	let r = await decode(caf)
+	is(r.channelData.length, 1)
+	is(r.sampleRate, 44100)
+	is(near(dur(r), 12.27), true, 'duration')
+	is(near(rms(r.channelData[0]), 0.13, 0.01), true, 'rms')
+})
+
+t('webm opus', async () => {
+	let r = await decode(webm)
+	is(r.sampleRate, 48000)
+	is(near(dur(r), 12.27), true, 'duration')
+	is(near(rms(r.channelData[0]), 0.12, 0.02), true, 'rms')
+})
+
 t('qoa', async () => {
 	let r = await decode(qoa)
 	is(near(dur(r), 0.82, 0.05), true, 'duration')
@@ -90,7 +116,7 @@ t('buffer input', async () => {
 // -- streaming via decoders --
 
 t('stream mp3', async () => {
-	let dec = await decoders.mp3()
+	let dec = await decode.mp3.stream()
 	let r = await dec.decode(new Uint8Array(mp3))
 	is(r.channelData.length > 0, true)
 	is(r.channelData[0].length > 0, true)
@@ -99,35 +125,35 @@ t('stream mp3', async () => {
 })
 
 t('stream wav', async () => {
-	let dec = await decoders.wav()
+	let dec = await decode.wav.stream()
 	let r = await dec.decode(new Uint8Array(wav))
 	is(r.channelData[0].length > 0, true)
 	is(r.sampleRate, 44100)
 })
 
 t('stream flac', async () => {
-	let dec = await decoders.flac()
+	let dec = await decode.flac.stream()
 	let r = await dec.decode(new Uint8Array(flac))
 	is(r.channelData[0].length > 0, true)
 	await dec.decode()
 })
 
 t('stream opus', async () => {
-	let dec = await decoders.opus()
+	let dec = await decode.opus.stream()
 	let r = await dec.decode(new Uint8Array(opus))
 	is(r.channelData[0].length > 0, true)
 	await dec.decode()
 })
 
 t('stream oga', async () => {
-	let dec = await decoders.oga()
+	let dec = await decode.oga.stream()
 	let r = await dec.decode(new Uint8Array(ogg))
 	is(r.channelData[0].length > 0, true)
 	await dec.decode()
 })
 
 t('stream m4a', async () => {
-	let dec = await decoders.m4a()
+	let dec = await decode.m4a.stream()
 	let r = await dec.decode(new Uint8Array(m4a))
 	is(r.channelData.length > 0, true)
 	is(r.channelData[0].length > 0, true)
@@ -135,10 +161,33 @@ t('stream m4a', async () => {
 	await dec.decode()
 })
 
+t('stream aiff', async () => {
+	let dec = await decode.aiff.stream()
+	let r = await dec.decode(new Uint8Array(aiff))
+	is(r.channelData[0].length > 0, true)
+	is(r.sampleRate, 44100)
+	await dec.decode()
+})
+
+t('stream caf', async () => {
+	let dec = await decode.caf.stream()
+	let r = await dec.decode(new Uint8Array(caf))
+	is(r.channelData[0].length > 0, true)
+	is(r.sampleRate, 44100)
+	await dec.decode()
+})
+
+t('stream webm', async () => {
+	let dec = await decode.webm.stream()
+	let r = await dec.decode(new Uint8Array(webm))
+	is(r.channelData[0].length > 0, true)
+	await dec.decode()
+})
+
 // -- flush / free lifecycle --
 
 t('double flush', async () => {
-	let dec = await decoders.mp3()
+	let dec = await decode.mp3.stream()
 	await dec.decode(new Uint8Array(mp3))
 	await dec.decode()
 	let r = await dec.decode()
@@ -147,7 +196,7 @@ t('double flush', async () => {
 })
 
 t('free without flush', async () => {
-	let dec = await decoders.mp3()
+	let dec = await decode.mp3.stream()
 	await dec.decode(new Uint8Array(mp3))
 	dec.free()
 	let r = await dec.decode()
@@ -155,7 +204,7 @@ t('free without flush', async () => {
 })
 
 t('decode after free throws', async () => {
-	let dec = await decoders.mp3()
+	let dec = await decode.mp3.stream()
 	dec.free()
 	let threw = false
 	try { await dec.decode(new Uint8Array(mp3)) } catch { threw = true }
@@ -163,7 +212,7 @@ t('decode after free throws', async () => {
 })
 
 t('double free is safe', async () => {
-	let dec = await decoders.flac()
+	let dec = await decode.flac.stream()
 	dec.free()
 	dec.free()
 })
@@ -171,7 +220,7 @@ t('double free is safe', async () => {
 // -- EMPTY immutability --
 
 t('empty result is immutable', async () => {
-	let dec = await decoders.mp3()
+	let dec = await decode.mp3.stream()
 	await dec.decode()
 	let r = await dec.decode()
 	let threw = false
@@ -221,7 +270,7 @@ t('concurrent decoding', async () => {
 })
 
 t('concurrent stream decoders', async () => {
-	let [d1, d2] = await Promise.all([decoders.mp3(), decoders.flac()])
+	let [d1, d2] = await Promise.all([decode.mp3.stream(), decode.flac.stream()])
 	let [r1, r2] = await Promise.all([
 		d1.decode(new Uint8Array(mp3)),
 		d2.decode(new Uint8Array(flac)),
@@ -302,16 +351,31 @@ t('decodeStream unknown format', async () => {
 	is(threw, true)
 })
 
+// -- direct format decode --
+
+t('decode.mp3(data)', async () => {
+	let r = await decode.mp3(mp3)
+	is(r.channelData.length, 2)
+	is(r.sampleRate, 44100)
+	is(near(dur(r), 12.27), true, 'duration')
+})
+
+t('decode.aiff(data)', async () => {
+	let r = await decode.aiff(aiff)
+	is(r.channelData.length, 1)
+	is(r.sampleRate, 44100)
+})
+
 // -- decoders extensibility --
 
 t('custom decoder registration', async () => {
-	decoders.test = async () => ({
+	decode.test = async () => ({
 		decode: async (chunk) => ({ channelData: [new Float32Array(chunk.length)], sampleRate: 8000 }),
 		free() {}
 	})
-	let dec = await decoders.test()
+	let dec = await decode.test()
 	let r = await dec.decode(new Uint8Array(10))
 	is(r.sampleRate, 8000)
 	is(r.channelData[0].length, 10)
-	delete decoders.test
+	delete decode.test
 })

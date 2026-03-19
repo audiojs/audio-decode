@@ -29,7 +29,7 @@
     "qoa-format": "^1.0.1"
   },
   "devDependencies": {
-    "audio-lena": "^2.3.0",
+    "audio-lena": "^3.0.0",
     "base64-arraybuffer": "^1.0.2",
     "playwright": "^1.58.0",
     "tst": "^9.2.2"

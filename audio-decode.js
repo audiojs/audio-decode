@@ -4,7 +4,7 @@
  *
  * let { channelData, sampleRate } = await decode(mp3buf)
  *
- * let dec = await decoders.mp3()
+ * let dec = await decode.mp3.stream()
  * let { channelData, sampleRate } = await dec.decode(chunk)
  * await dec.decode() // flush + free
  */
@@ -25,28 +25,20 @@ export default async function decode(src) {
 
 	let type = getType(buf)
 	if (!type) throw Error('Unknown audio format')
-	if (!decoders[type]) throw Error('No decoder for ' + type)
+	if (!decode[type]) throw Error('No decoder for ' + type)
 
-	let dec = await decoders[type]()
-	try {
-		let result = await dec.decode(buf)
-		let flushed = await dec.decode()
-		return merge(result, flushed)
-	} catch (e) {
-		dec.free()
-		throw e
-	}
+	return decode[type](buf)
 }
 
 /**
- * Decode a ReadableStream of audio chunks
- * @param {ReadableStream} stream - stream of Uint8Array chunks
- * @param {string} format - codec name (mp3, flac, opus, oga, m4a, wav, qoa, aac, aiff, caf, webm, amr, wma)
+ * Decode a ReadableStream or async iterable of audio chunks
+ * @param {ReadableStream|AsyncIterable} stream
+ * @param {string} format - codec name
  * @returns {AsyncGenerator<{channelData: Float32Array[], sampleRate: number}>}
  */
 export async function* decodeStream(stream, format) {
-	if (!decoders[format]) throw Error('No decoder for ' + format)
-	let dec = await decoders[format]()
+	if (!decode[format]) throw Error('No decoder for ' + format)
+	let dec = await decode[format].stream()
 	try {
 		// Safari ReadableStream doesn't support for-await, use getReader() if available
 		if (stream.getReader) {
@@ -70,114 +62,101 @@ export async function* decodeStream(stream, format) {
 	}
 }
 
-// codec registry: each returns an initialized StreamDecoder
-export const decoders = {
-	async mp3() {
-		const { MPEGDecoder } = await import('mpg123-decoder')
-		let dec = new MPEGDecoder()
-		await dec.ready
-		return streamDecoder(chunk => dec.decode(chunk), null, () => dec.free())
-	},
+// --- format registration ---
 
-	async flac() {
-		const { FLACDecoder } = await import('@wasm-audio-decoders/flac')
-		let dec = new FLACDecoder()
-		await dec.ready
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
-	},
-
-	async opus() {
-		const { OggOpusDecoder } = await import('ogg-opus-decoder')
-		let dec = new OggOpusDecoder()
-		await dec.ready
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
-	},
-
-	async oga() {
-		const { OggVorbisDecoder } = await import('@wasm-audio-decoders/ogg-vorbis')
-		let dec = new OggVorbisDecoder()
-		await dec.ready
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
-	},
-
-	async m4a() {
-		const { decoder } = await import('@audio/aac-decode')
-		let dec = await decoder()
-		// M4A requires full file (moov atom can be at end), so buffer chunks until flush
-		let chunks = [], decoded = false
+function reg(name, load) {
+	decode[name] = fmt(async () => {
+		let mod = await load()
+		// @audio/* packages export { decoder, default }
+		if (mod.decoder) {
+			let codec = await mod.decoder()
+			return streamDecoder(
+				chunk => codec.decode(chunk),
+				codec.flush ? () => codec.flush() : null,
+				codec.free ? () => codec.free() : null
+			)
+		}
+		// wasm-audio-decoders export class with .ready
+		let init = mod.default || mod
+		let codec = typeof init === 'function' ? await init() : init
+		if (codec.ready) await codec.ready
 		return streamDecoder(
-			chunk => {
-				// if chunk contains ftyp, try decoding as complete M4A
-				if (!decoded && chunk.length > 8 && chunk[4] === 0x66 && chunk[5] === 0x74 && chunk[6] === 0x79 && chunk[7] === 0x70) {
-					let r = dec.decode(chunk)
-					if (r.channelData.length) { decoded = true; chunks = null; return r }
-				}
-				if (!decoded) chunks.push(chunk)
-				return EMPTY
-			},
-			() => {
-				if (decoded || !chunks.length) return EMPTY
-				let total = chunks.reduce((a, c) => a + c.length, 0)
-				let buf = new Uint8Array(total), off = 0
-				for (let c of chunks) { buf.set(c, off); off += c.length }
-				chunks = null
-				return dec.decode(buf)
-			},
-			() => { chunks = null; dec.free() }
+			chunk => codec.decode(chunk),
+			codec.flush ? () => codec.flush() : null,
+			codec.free ? () => codec.free() : null
 		)
-	},
-
-	async wav() {
-		let { default: { decode: wavDecode } } = await import('node-wav')
-		return streamDecoder(chunk => wavDecode(chunk))
-	},
-
-	async qoa() {
-		let { decode } = await import('qoa-format')
-		return streamDecoder(chunk => decode(chunk))
-	},
-
-	async aac() {
-		const { decoder } = await import('@audio/aac-decode')
-		let dec = await decoder()
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
-	},
-
-	async aiff() {
-		const { decoder } = await import('@audio/aiff-decode')
-		let dec = await decoder()
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
-	},
-
-	async caf() {
-		const { decoder } = await import('@audio/caf-decode')
-		let dec = await decoder()
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
-	},
-
-	async webm() {
-		const { decoder } = await import('@audio/webm-decode')
-		let dec = await decoder()
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
-	},
-
-	async amr() {
-		const { decoder } = await import('@audio/amr-decode')
-		let dec = await decoder()
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
-	},
-
-	async wma() {
-		const { decoder } = await import('@audio/wma-decode')
-		let dec = await decoder()
-		return streamDecoder(chunk => dec.decode(chunk), () => dec.flush(), () => dec.free())
-	},
+	})
 }
+
+/**
+ * Wrap a stream factory into whole-file decoder + .stream
+ * @param {function} init - async () => StreamDecoder
+ */
+function fmt(init) {
+	let fn = async (src) => {
+		let buf = src instanceof Uint8Array ? src : new Uint8Array(src.buffer || src)
+		let dec = await init()
+		try {
+			let result = await dec.decode(buf)
+			let flushed = await dec.decode()
+			return merge(result, flushed)
+		} catch (e) { dec.free(); throw e }
+	}
+	fn.stream = init
+	return fn
+}
+
+// --- codecs ---
+
+reg('mp3', () => import('mpg123-decoder').then(m => ({ decoder: async () => { let d = new m.MPEGDecoder(); await d.ready; return d } })))
+reg('flac', () => import('@wasm-audio-decoders/flac').then(m => ({ decoder: async () => { let d = new m.FLACDecoder(); await d.ready; return d } })))
+reg('opus', () => import('ogg-opus-decoder').then(m => ({ decoder: async () => { let d = new m.OggOpusDecoder(); await d.ready; return d } })))
+reg('oga', () => import('@wasm-audio-decoders/ogg-vorbis').then(m => ({ decoder: async () => { let d = new m.OggVorbisDecoder(); await d.ready; return d } })))
+
+// M4A needs full file (moov atom can be at end) — buffer chunks until flush
+decode.m4a = fmt(async () => {
+	const { decoder } = await import('@audio/aac-decode')
+	let dec = await decoder()
+	let chunks = [], decoded = false
+	return streamDecoder(
+		chunk => {
+			if (!decoded && chunk.length > 8 && chunk[4] === 0x66 && chunk[5] === 0x74 && chunk[6] === 0x79 && chunk[7] === 0x70) {
+				let r = dec.decode(chunk)
+				if (r.channelData.length) { decoded = true; chunks = null; return r }
+			}
+			if (!decoded) chunks.push(chunk)
+			return EMPTY
+		},
+		() => {
+			if (decoded || !chunks.length) return EMPTY
+			let total = chunks.reduce((a, c) => a + c.length, 0)
+			let buf = new Uint8Array(total), off = 0
+			for (let c of chunks) { buf.set(c, off); off += c.length }
+			chunks = null
+			return dec.decode(buf)
+		},
+		() => { chunks = null; dec.free() }
+	)
+})
+
+reg('wav', () => import('node-wav').then(m => ({ decoder: async () => ({ decode: chunk => m.default.decode(chunk) }) })))
+reg('qoa', () => import('qoa-format').then(m => ({ decoder: async () => ({ decode: chunk => m.decode(chunk) }) })))
+
+reg('aac', () => import('@audio/aac-decode'))
+reg('aiff', () => import('@audio/aiff-decode'))
+reg('caf', () => import('@audio/caf-decode'))
+reg('webm', () => import('@audio/webm-decode'))
+reg('amr', () => import('@audio/amr-decode'))
+reg('wma', () => import('@audio/wma-decode'))
+
+// backward compat
+export const decoders = decode
 
 /**
  * StreamDecoder:
  * .decode(chunk) — decode data, returns { channelData, sampleRate }
  * .decode(null)  — end of stream: flush remaining samples + free resources
+ * .flush()       — flush without freeing
  * .free()        — release resources without flushing
  */
 function streamDecoder(onDecode, onFlush, onFree) {
