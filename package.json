@@ -13,6 +13,9 @@
     },
     "./package.json": "./package.json"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
     "@audio/aac-decode": "^1.0.2",
     "@audio/aiff-decode": "^1.0.0",

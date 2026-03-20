@@ -1,0 +1,55 @@
+# caf-decode
+
+Decode Core Audio Format (CAF) audio to PCM float samples.
+
+Part of [audio-decode](https://github.com/audiojs/audio-decode).
+
+## Install
+
+```
+npm i @audio/caf-decode
+```
+
+## Usage
+
+```js
+import decode from '@audio/caf-decode'
+
+let { channelData, sampleRate } = await decode(cafBuffer)
+```
+
+### Streaming
+
+```js
+import { decoder } from '@audio/caf-decode'
+
+let dec = await decoder()
+let result = dec.decode(chunk)
+dec.free()
+```
+
+## API
+
+### `decode(src): Promise<AudioData>`
+
+Whole-file decode. Accepts `Uint8Array` or `ArrayBuffer`.
+
+### `decoder(): Promise<CAFDecoder>`
+
+Creates a decoder instance.
+
+- **`dec.decode(data)`** — decode chunk, returns `{ channelData, sampleRate }`
+- **`dec.flush()`** — flush (returns empty — CAF is stateless)
+- **`dec.free()`** — release resources
+
+## Formats
+
+- `lpcm` — 8, 16, 24, 32-bit signed integer (LE/BE), 32/64-bit float (LE/BE)
+- `alaw` — G.711 A-law
+- `ulaw` — G.711 mu-law
+
+## License
+
+MIT
+
+<a href="https://github.com/krishnized/license/">ॐ</a>

@@ -1,0 +1,47 @@
+{
+  "name": "@audio/aac-decode",
+  "version": "1.0.2",
+  "description": "Decode AAC/M4A audio via FAAD2 WASM",
+  "type": "module",
+  "main": "aac-decode.js",
+  "types": "aac-decode.d.ts",
+  "exports": {
+    ".": "./aac-decode.js",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bash build.sh",
+    "prepack": "npm run build",
+    "test": "node test.js"
+  },
+  "files": [
+    "aac-decode.js",
+    "aac-decode.d.ts",
+    "src/aac.wasm.cjs",
+    "LICENSE"
+  ],
+  "keywords": [
+    "aac",
+    "m4a",
+    "mp4",
+    "audio",
+    "decode",
+    "decoder",
+    "wasm",
+    "faad2"
+  ],
+  "license": "GPL-2.0",
+  "author": "audiojs",
+  "homepage": "https://github.com/audiojs/aac-decode#readme",
+  "bugs": "https://github.com/audiojs/aac-decode/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiojs/aac-decode.git"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
