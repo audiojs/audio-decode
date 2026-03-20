@@ -1,4 +1,3 @@
 node_modules/
 lib/faad2/
-src/aac.wasm.cjs
 /.claude
