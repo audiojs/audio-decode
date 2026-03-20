@@ -29,59 +29,45 @@ const { channelData, sampleRate } = await decode(anyAudioBuffer);
 | AMR | [@audio/amr-decode](https://github.com/audiojs/amr-decode) | WASM |
 | WMA | [@audio/wma-decode](https://github.com/audiojs/wma-decode) | WASM |
 
-### Whole-file decode
+### Whole-file
 
-Auto-detects format from content. Input can be _ArrayBuffer_, _Uint8Array_, or _Buffer_.
+Auto-detects format. Input can be _ArrayBuffer_, _Uint8Array_, or _Buffer_.
 
 ```js
-import decode from 'audio-decode';
+import decode from 'audio-decode'
 
-const { channelData, sampleRate } = await decode(anyAudioBuffer);
-// format detected automatically — works with any supported codec
+// auto-detect
+let { channelData, sampleRate } = await decode(buf)
+
+// or specify format
+let { channelData, sampleRate } = await decode.mp3(mp3buf)
 ```
 
-### Chunked decoding
-
-For chunk-by-chunk decoding, specify the codec upfront:
+### Streaming
 
 ```js
-import { decoders } from 'audio-decode';
-import audioType from 'audio-type';
+import decode from 'audio-decode'
 
-// autodetect format
-const format = audioType(firstChunk);        // 'mp3', 'flac', etc.
-const decoder = await decoders[format]();
-
-const a = await decoder.decode(chunk1);  // { channelData, sampleRate }
-const b = await decoder.decode(chunk2);
-const c = await decoder.decode(null);    // end of stream — flush + free
-
-// explicit methods
-// decoder.flush(), decoder.free()
+let dec = await decode.mp3.stream()
+let a = await dec.decode(chunk1)    // { channelData, sampleRate }
+let b = await dec.decode(chunk2)
+let c = await dec.decode()          // flush + free
 ```
 
-### Stream decoding
-
-Decode a `ReadableStream` or async iterable:
+With a `ReadableStream` or `fetch`:
 
 ```js
-import { decodeStream } from 'audio-decode';
-
-for await (const { channelData, sampleRate } of decodeStream(stream, 'mp3')) {
-  // process each decoded chunk
+let dec = await decode.mp3.stream()
+let reader = response.body.getReader()
+while (true) {
+  let { done, value } = await reader.read()
+  if (done) break
+  let { channelData, sampleRate } = await dec.decode(value)
 }
+let flushed = await dec.decode()    // flush + free
 ```
 
-Available codec keys: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`, `aac`, `aiff`, `caf`, `webm`, `amr`, `wma`.
-
-### Custom decoders
-
-The `decoders` registry is extensible:
-
-```js
-import { decoders } from 'audio-decode';
-decoders.myformat = async () => ({ decode: chunk => ..., free() {} });
-```
+Formats: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`, `aac`, `aiff`, `caf`, `webm`, `amr`, `wma`.
 
 ## See also
 
