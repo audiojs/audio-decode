@@ -36,35 +36,29 @@ Auto-detects format. Input can be _ArrayBuffer_, _Uint8Array_, or _Buffer_.
 ```js
 import decode from 'audio-decode'
 
-// auto-detect
 let { channelData, sampleRate } = await decode(buf)
-
-// or specify format
-let { channelData, sampleRate } = await decode.mp3(mp3buf)
 ```
 
 ### Streaming
 
 ```js
-import decode from 'audio-decode'
-
-let dec = await decode.mp3.stream()
-let a = await dec.decode(chunk1)    // { channelData, sampleRate }
-let b = await dec.decode(chunk2)
-let c = await dec.decode()          // flush + free
+let dec = await decode.mp3()
+let a = await dec(chunk1)    // { channelData, sampleRate }
+let b = await dec(chunk2)
+await dec()                  // close
 ```
 
 With a `ReadableStream` or `fetch`:
 
 ```js
-let dec = await decode.mp3.stream()
+let dec = await decode.mp3()
 let reader = response.body.getReader()
 while (true) {
   let { done, value } = await reader.read()
   if (done) break
-  let { channelData, sampleRate } = await dec.decode(value)
+  let { channelData, sampleRate } = await dec(value)
 }
-let flushed = await dec.decode()    // flush + free
+await dec()                  // close
 ```
 
 Formats: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`, `aac`, `aiff`, `caf`, `webm`, `amr`, `wma`.

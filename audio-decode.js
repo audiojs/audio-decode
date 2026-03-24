@@ -2,11 +2,11 @@
  * Audio decoder: whole-file and streaming
  * @module audio-decode
  *
- * let { channelData, sampleRate } = await decode(mp3buf)
+ * let { channelData, sampleRate } = await decode(buf)
  *
- * let dec = await decode.mp3.stream()
- * let { channelData, sampleRate } = await dec.decode(chunk)
- * await dec.decode() // flush + free
+ * let dec = await decode.mp3()
+ * let { channelData, sampleRate } = await dec(chunk)
+ * await dec() // close
  */
 
 import getType from 'audio-type';
@@ -27,7 +27,12 @@ export default async function decode(src) {
 	if (!type) throw Error('Unknown audio format')
 	if (!decode[type]) throw Error('No decoder for ' + type)
 
-	return decode[type](buf)
+	let dec = await decode[type]()
+	try {
+		let result = await dec(buf)
+		let flushed = await dec()
+		return merge(result, flushed)
+	} catch (e) { dec.free(); throw e }
 }
 
 /**
@@ -38,7 +43,7 @@ export default async function decode(src) {
  */
 export async function* decodeStream(stream, format) {
 	if (!decode[format]) throw Error('No decoder for ' + format)
-	let dec = await decode[format].stream()
+	let dec = await decode[format]()
 	try {
 		// Safari ReadableStream doesn't support for-await, use getReader() if available
 		if (stream.getReader) {
@@ -46,16 +51,16 @@ export async function* decodeStream(stream, format) {
 			while (true) {
 				let { done, value } = await reader.read()
 				if (done) break
-				let result = await dec.decode(value instanceof Uint8Array ? value : new Uint8Array(value))
+				let result = await dec(value instanceof Uint8Array ? value : new Uint8Array(value))
 				if (result.channelData.length) yield result
 			}
 		} else {
 			for await (let chunk of stream) {
-				let result = await dec.decode(chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk))
+				let result = await dec(chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk))
 				if (result.channelData.length) yield result
 			}
 		}
-		let flushed = await dec.decode()
+		let flushed = await dec()
 		if (flushed.channelData.length) yield flushed
 	} finally {
 		dec.free()
@@ -65,7 +70,7 @@ export async function* decodeStream(stream, format) {
 // --- format registration ---
 
 function reg(name, load) {
-	decode[name] = fmt(async () => {
+	decode[name] = fmt(name, async () => {
 		let mod = await load()
 		// @audio/* packages export { decoder, default }
 		if (mod.decoder) {
@@ -88,17 +93,15 @@ function reg(name, load) {
 	})
 }
 
-/**
- * Wrap a stream factory into whole-file decoder + .stream
- * @param {function} init - async () => StreamDecoder
- */
-function fmt(init) {
+// TODO: remove backward compat (src arg, .stream) in next major
+function fmt(name, init) {
 	let fn = async (src) => {
-		let buf = src instanceof Uint8Array ? src : new Uint8Array(src.buffer || src)
+		if (!src) return init()
+		console.warn('decode.' + name + '(data) is deprecated, use decode(data) or let dec = await decode.' + name + '()')
 		let dec = await init()
 		try {
-			let result = await dec.decode(buf)
-			let flushed = await dec.decode()
+			let result = await dec(src instanceof Uint8Array ? src : new Uint8Array(src.buffer || src))
+			let flushed = await dec()
 			return merge(result, flushed)
 		} catch (e) { dec.free(); throw e }
 	}
@@ -114,7 +117,7 @@ reg('opus', () => import('ogg-opus-decoder').then(m => ({ decoder: async () => {
 reg('oga', () => import('@wasm-audio-decoders/ogg-vorbis').then(m => ({ decoder: async () => { let d = new m.OggVorbisDecoder(); await d.ready; return d } })))
 
 // M4A needs full file (moov atom can be at end) — buffer chunks until flush
-decode.m4a = fmt(async () => {
+decode.m4a = fmt('m4a', async () => {
 	const { decoder } = await import('@audio/aac-decode')
 	let dec = await decoder()
 	let chunks = [], decoded = false
@@ -149,44 +152,44 @@ reg('webm', () => import('@audio/webm-decode'))
 reg('amr', () => import('@audio/amr-decode'))
 reg('wma', () => import('@audio/wma-decode'))
 
-// backward compat
+// TODO: remove in next major
 export const decoders = decode
 
 /**
- * StreamDecoder:
- * .decode(chunk) — decode data, returns { channelData, sampleRate }
- * .decode(null)  — end of stream: flush remaining samples + free resources
- * .flush()       — flush without freeing
- * .free()        — release resources without flushing
+ * StreamDecoder — a callable function:
+ * dec(chunk)  — decode data, returns { channelData, sampleRate }
+ * dec()       — end of stream: flush remaining samples + free resources
+ * dec.flush() — flush without freeing
+ * dec.free()  — release resources without flushing
  */
 function streamDecoder(onDecode, onFlush, onFree) {
 	let done = false
-	return {
-		async decode(chunk) {
-			if (chunk) {
-				if (done) throw Error('Decoder already freed')
-				try { return norm(await onDecode(chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk))) }
-				catch (e) { done = true; onFree?.(); throw e }
-			}
-			// null/undefined = end of stream
-			if (done) return EMPTY
-			done = true
-			try {
-				let result = onFlush ? norm(await onFlush()) : EMPTY
-				onFree?.()
-				return result
-			} catch (e) { onFree?.(); throw e }
-		},
-		async flush() {
-			if (done) return EMPTY
-			return onFlush ? norm(await onFlush()) : EMPTY
-		},
-		free() {
-			if (done) return
-			done = true
-			onFree?.()
+	let fn = async (chunk) => {
+		if (chunk) {
+			if (done) throw Error('Decoder already freed')
+			try { return norm(await onDecode(chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk))) }
+			catch (e) { done = true; onFree?.(); throw e }
 		}
+		// null/undefined = end of stream
+		if (done) return EMPTY
+		done = true
+		try {
+			let result = onFlush ? norm(await onFlush()) : EMPTY
+			onFree?.()
+			return result
+		} catch (e) { onFree?.(); throw e }
 	}
+	fn.decode = fn // TODO: remove in next major
+	fn.flush = async () => {
+		if (done) return EMPTY
+		return onFlush ? norm(await onFlush()) : EMPTY
+	}
+	fn.free = () => {
+		if (done) return
+		done = true
+		onFree?.()
+	}
+	return fn
 }
 
 // extract { channelData, sampleRate } from codec result

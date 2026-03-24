@@ -4,10 +4,8 @@ export interface AudioData {
 }
 
 export interface StreamDecoder {
-  /** Feed a chunk of encoded audio data. */
-  decode(chunk: Uint8Array): Promise<AudioData>;
-  /** Flush remaining buffered data and free resources. */
-  decode(): Promise<AudioData>;
+  /** Feed a chunk of encoded audio data, or call empty to flush + free. */
+  (chunk?: Uint8Array): Promise<AudioData>;
   /** Flush without freeing. */
   flush(): Promise<AudioData>;
   /** Free resources without flushing. */
@@ -17,9 +15,9 @@ export interface StreamDecoder {
 type Format = 'mp3' | 'flac' | 'opus' | 'oga' | 'm4a' | 'wav' | 'qoa' | 'aac' | 'aiff' | 'caf' | 'webm' | 'amr' | 'wma';
 
 interface FormatDecoder {
-  /** Whole-file decode for this format. */
-  (src: ArrayBuffer | Uint8Array): Promise<AudioData>;
-  /** Create a streaming decoder. */
+  /** Create a decoder instance. */
+  (): Promise<StreamDecoder>;
+  /** @deprecated Use decode.mp3() instead. */
   stream(): Promise<StreamDecoder>;
 }
 
@@ -44,7 +42,7 @@ declare namespace decode {
 
 export default decode;
 
-/** @deprecated Use decode.mp3.stream() */
+/** @deprecated Use decode.mp3() */
 export function decodeStream(
   stream: ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>,
   format: Format

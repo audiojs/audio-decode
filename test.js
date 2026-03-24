@@ -116,103 +116,103 @@ t('buffer input', async () => {
 // -- streaming via decoders --
 
 t('stream mp3', async () => {
-	let dec = await decode.mp3.stream()
-	let r = await dec.decode(new Uint8Array(mp3))
+	let dec = await decode.mp3()
+	let r = await dec(new Uint8Array(mp3))
 	is(r.channelData.length > 0, true)
 	is(r.channelData[0].length > 0, true)
 	is(r.sampleRate, 44100)
-	await dec.decode()
+	await dec()
 })
 
 t('stream wav', async () => {
-	let dec = await decode.wav.stream()
-	let r = await dec.decode(new Uint8Array(wav))
+	let dec = await decode.wav()
+	let r = await dec(new Uint8Array(wav))
 	is(r.channelData[0].length > 0, true)
 	is(r.sampleRate, 44100)
 })
 
 t('stream flac', async () => {
-	let dec = await decode.flac.stream()
-	let r = await dec.decode(new Uint8Array(flac))
+	let dec = await decode.flac()
+	let r = await dec(new Uint8Array(flac))
 	is(r.channelData[0].length > 0, true)
-	await dec.decode()
+	await dec()
 })
 
 t('stream opus', async () => {
-	let dec = await decode.opus.stream()
-	let r = await dec.decode(new Uint8Array(opus))
+	let dec = await decode.opus()
+	let r = await dec(new Uint8Array(opus))
 	is(r.channelData[0].length > 0, true)
-	await dec.decode()
+	await dec()
 })
 
 t('stream oga', async () => {
-	let dec = await decode.oga.stream()
-	let r = await dec.decode(new Uint8Array(ogg))
+	let dec = await decode.oga()
+	let r = await dec(new Uint8Array(ogg))
 	is(r.channelData[0].length > 0, true)
-	await dec.decode()
+	await dec()
 })
 
 t('stream m4a', async () => {
-	let dec = await decode.m4a.stream()
-	let r = await dec.decode(new Uint8Array(m4a))
+	let dec = await decode.m4a()
+	let r = await dec(new Uint8Array(m4a))
 	is(r.channelData.length > 0, true)
 	is(r.channelData[0].length > 0, true)
 	is(r.sampleRate, 44100)
-	await dec.decode()
+	await dec()
 })
 
 t('stream aiff', async () => {
-	let dec = await decode.aiff.stream()
-	let r = await dec.decode(new Uint8Array(aiff))
+	let dec = await decode.aiff()
+	let r = await dec(new Uint8Array(aiff))
 	is(r.channelData[0].length > 0, true)
 	is(r.sampleRate, 44100)
-	await dec.decode()
+	await dec()
 })
 
 t('stream caf', async () => {
-	let dec = await decode.caf.stream()
-	let r = await dec.decode(new Uint8Array(caf))
+	let dec = await decode.caf()
+	let r = await dec(new Uint8Array(caf))
 	is(r.channelData[0].length > 0, true)
 	is(r.sampleRate, 44100)
-	await dec.decode()
+	await dec()
 })
 
 t('stream webm', async () => {
-	let dec = await decode.webm.stream()
-	let r = await dec.decode(new Uint8Array(webm))
+	let dec = await decode.webm()
+	let r = await dec(new Uint8Array(webm))
 	is(r.channelData[0].length > 0, true)
-	await dec.decode()
+	await dec()
 })
 
 // -- flush / free lifecycle --
 
 t('double flush', async () => {
-	let dec = await decode.mp3.stream()
-	await dec.decode(new Uint8Array(mp3))
-	await dec.decode()
-	let r = await dec.decode()
+	let dec = await decode.mp3()
+	await dec(new Uint8Array(mp3))
+	await dec()
+	let r = await dec()
 	is(r.channelData.length, 0)
 	is(r.sampleRate, 0)
 })
 
 t('free without flush', async () => {
-	let dec = await decode.mp3.stream()
-	await dec.decode(new Uint8Array(mp3))
+	let dec = await decode.mp3()
+	await dec(new Uint8Array(mp3))
 	dec.free()
-	let r = await dec.decode()
+	let r = await dec()
 	is(r.channelData.length, 0)
 })
 
 t('decode after free throws', async () => {
-	let dec = await decode.mp3.stream()
+	let dec = await decode.mp3()
 	dec.free()
 	let threw = false
-	try { await dec.decode(new Uint8Array(mp3)) } catch { threw = true }
+	try { await dec(new Uint8Array(mp3)) } catch { threw = true }
 	is(threw, true)
 })
 
 t('double free is safe', async () => {
-	let dec = await decode.flac.stream()
+	let dec = await decode.flac()
 	dec.free()
 	dec.free()
 })
@@ -220,9 +220,9 @@ t('double free is safe', async () => {
 // -- EMPTY immutability --
 
 t('empty result is immutable', async () => {
-	let dec = await decode.mp3.stream()
-	await dec.decode()
-	let r = await dec.decode()
+	let dec = await decode.mp3()
+	await dec()
+	let r = await dec()
 	let threw = false
 	try { r.sampleRate = 999 } catch { threw = true }
 	is(threw, true)
@@ -272,12 +272,12 @@ t('concurrent decoding', async () => {
 t('concurrent stream decoders', async () => {
 	let [d1, d2] = await Promise.all([decode.mp3.stream(), decode.flac.stream()])
 	let [r1, r2] = await Promise.all([
-		d1.decode(new Uint8Array(mp3)),
-		d2.decode(new Uint8Array(flac)),
+		d1(new Uint8Array(mp3)),
+		d2(new Uint8Array(flac)),
 	])
 	is(r1.channelData[0].length > 0, true)
 	is(r2.channelData[0].length > 0, true)
-	await Promise.all([d1.decode(), d2.decode()])
+	await Promise.all([d1(), d2()])
 })
 
 // -- zero-length / edge cases --
@@ -353,17 +353,21 @@ t('decodeStream unknown format', async () => {
 
 // -- direct format decode --
 
-t('decode.mp3(data)', async () => {
-	let r = await decode.mp3(mp3)
+t('decode.mp3() factory', async () => {
+	let dec = await decode.mp3()
+	let r = await dec(new Uint8Array(mp3))
 	is(r.channelData.length, 2)
 	is(r.sampleRate, 44100)
 	is(near(dur(r), 12.27), true, 'duration')
+	await dec()
 })
 
-t('decode.aiff(data)', async () => {
-	let r = await decode.aiff(aiff)
+t('decode.aiff() factory', async () => {
+	let dec = await decode.aiff()
+	let r = await dec(new Uint8Array(aiff))
 	is(r.channelData.length, 1)
 	is(r.sampleRate, 44100)
+	await dec()
 })
 
 // -- decoders extensibility --
