@@ -11,6 +11,7 @@
       "node": "./audio-decode.js",
       "default": "./audio-decode.js"
     },
+    "./stream": "./stream.js",
     "./package.json": "./package.json"
   },
   "workspaces": [
@@ -39,7 +40,7 @@
   },
   "scripts": {
     "test": "node test.js",
-    "test:browser": "node test.browser.js"
+    "test:browser": "npx vite"
   },
   "repository": {
     "type": "git",

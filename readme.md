@@ -39,7 +39,7 @@ import decode from 'audio-decode'
 let { channelData, sampleRate } = await decode(buf)
 ```
 
-### Streaming
+### Chunked
 
 ```js
 let dec = await decode.mp3()
@@ -48,17 +48,16 @@ let b = await dec(chunk2)
 await dec()                  // close
 ```
 
-With a `ReadableStream` or `fetch`:
+## Streaming
+
+With `ReadableStream`, `fetch`, or Node stream:
 
 ```js
-let dec = await decode.mp3()
-let reader = response.body.getReader()
-while (true) {
-  let { done, value } = await reader.read()
-  if (done) break
-  let { channelData, sampleRate } = await dec(value)
+import decodeStream from 'audio-decode/stream'
+
+for await (let { channelData, sampleRate } of decodeStream(response.body, 'mp3')) {
+  // process chunks
 }
-await dec()                  // close
 ```
 
 Formats: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`, `aac`, `aiff`, `caf`, `webm`, `amr`, `wma`.

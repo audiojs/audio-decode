@@ -42,7 +42,7 @@ declare namespace decode {
 
 export default decode;
 
-/** @deprecated Use decode.mp3() */
+/** @deprecated Use audio-decode/stream */
 export function decodeStream(
   stream: ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>,
   format: Format
