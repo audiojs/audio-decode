@@ -70,4 +70,4 @@ Formats: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`, `aac`, `aiff`, `caf`
 * [decodeAudioData](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/decodeAudioData) – built-in browser decoding method.
 * [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) – full encoding/decoding library.
 
-<p align="center"><a href="./license">MIT</a> • <a href="https://github.com/krishnized/license/">ॐ</a>
+<p align="center"><a href="./LICENSE">MIT</a> • <a href="https://github.com/krishnized/license/">ॐ</a>
