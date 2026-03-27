@@ -1,0 +1,16 @@
+{
+  "name": "@audio/wav-decode",
+  "version": "1.0.0",
+  "description": "Decode WAV audio to PCM samples",
+  "type": "module",
+  "main": "wav-decode.js",
+  "exports": {
+    ".": "./wav-decode.js",
+    "./package.json": "./package.json"
+  },
+  "keywords": ["wav", "audio", "decode", "decoder", "pcm"],
+  "publishConfig": { "access": "public" },
+  "license": "MIT",
+  "author": "audiojs",
+  "scripts": { "test": "node test.js" }
+}

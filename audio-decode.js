@@ -142,7 +142,7 @@ decode.m4a = fmt('m4a', async () => {
 	)
 })
 
-reg('wav', () => import('node-wav').then(m => ({ decoder: async () => ({ decode: chunk => m.default.decode(chunk) }) })))
+reg('wav', () => import('@audio/wav-decode'))
 reg('qoa', () => import('qoa-format').then(m => ({ decoder: async () => ({ decode: chunk => m.decode(chunk) }) })))
 
 reg('aac', () => import('@audio/aac-decode'))
