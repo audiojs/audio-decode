@@ -199,6 +199,12 @@ function norm(r) {
 	if (samplesDecoded != null && samplesDecoded < channelData[0].length)
 		channelData = channelData.map(ch => ch.subarray(0, samplesDecoded))
 	if (!channelData[0]?.length) return EMPTY
+	// collapse duplicate stereo to mono (some decoders always output 2ch for mono sources)
+	if (channelData.length === 2) {
+		let a = channelData[0], b = channelData[1], same = true
+		for (let i = 0; i < a.length; i += 37) { if (a[i] !== b[i]) { same = false; break } }
+		if (same) channelData = [a]
+	}
 	return { channelData, sampleRate }
 }
 
@@ -206,11 +212,14 @@ function norm(r) {
 function merge(a, b) {
 	if (!b?.channelData?.length) return a
 	if (!a?.channelData?.length) return b
+	let ach = a.channelData.length, bch = b.channelData.length
+	let ch = Math.max(ach, bch)
 	return {
-		channelData: a.channelData.map((ch, i) => {
-			let merged = new Float32Array(ch.length + b.channelData[i].length)
-			merged.set(ch)
-			merged.set(b.channelData[i], ch.length)
+		channelData: Array.from({ length: ch }, (_, i) => {
+			let ac = a.channelData[i % ach], bc = b.channelData[i % bch]
+			let merged = new Float32Array(ac.length + bc.length)
+			merged.set(ac)
+			merged.set(bc, ac.length)
 			return merged
 		}),
 		sampleRate: a.sampleRate

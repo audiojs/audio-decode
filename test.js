@@ -29,7 +29,7 @@ t('wav', async () => {
 
 t('mp3', async () => {
 	let r = await decode(mp3)
-	is(r.channelData.length, 2)
+	is(r.channelData.length, 1)
 	is(r.sampleRate, 44100)
 	is(near(dur(r), 12.27), true, 'duration')
 	is(near(rms(r.channelData[0]), 0.13, 0.01), true, 'rms')
@@ -356,7 +356,7 @@ t('decodeStream unknown format', async () => {
 t('decode.mp3() factory', async () => {
 	let dec = await decode.mp3()
 	let r = await dec(new Uint8Array(mp3))
-	is(r.channelData.length, 2)
+	is(r.channelData.length, 1)
 	is(r.sampleRate, 44100)
 	is(near(dur(r), 12.27), true, 'duration')
 	await dec()
@@ -368,6 +368,19 @@ t('decode.aiff() factory', async () => {
 	is(r.channelData.length, 1)
 	is(r.sampleRate, 44100)
 	await dec()
+})
+
+// -- mono channel detection --
+
+t('mono mp3 decoded as 1 channel', async () => {
+	// lena mp3 is a mono source — should decode to 1 channel
+	let r = await decode(mp3)
+	is(r.channelData.length, 1, 'mono mp3 returns 1 channel')
+})
+
+t('stereo m4a decoded as 2 channels', async () => {
+	let r = await decode(m4a)
+	is(r.channelData.length, 2, 'stereo m4a returns 2 channels')
 })
 
 // -- decoders extensibility --
