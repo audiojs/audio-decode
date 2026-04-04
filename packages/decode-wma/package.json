@@ -17,7 +17,6 @@
   ],
   "scripts": {
     "build": "bash build.sh",
-    "prepack": "npm run build",
     "test": "node test.js"
   },
   "keywords": [

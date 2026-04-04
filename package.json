@@ -40,7 +40,8 @@
   },
   "scripts": {
     "test": "node test.js",
-    "test:browser": "npx vite"
+    "test:browser": "npx vite",
+    "publish:all": "npm publish --workspaces && npm publish"
   },
   "repository": {
     "type": "git",
