@@ -1,4 +1,4 @@
-import decode, { decoder } from './wav-decode.js'
+import decode, { decoder } from './decode-wav.js'
 
 let pass = 0, fail = 0
 function ok(cond, msg) {

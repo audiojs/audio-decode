@@ -118,7 +118,7 @@ reg('oga', () => import('@wasm-audio-decoders/ogg-vorbis').then(m => ({ decoder:
 
 // M4A needs full file (moov atom can be at end) — buffer chunks until flush
 decode.m4a = fmt('m4a', async () => {
-	const { decoder } = await import('@audio/aac-decode')
+	const { decoder } = await import('@audio/decode-aac')
 	let dec = await decoder()
 	let chunks = [], decoded = false
 	return streamDecoder(
@@ -142,15 +142,15 @@ decode.m4a = fmt('m4a', async () => {
 	)
 })
 
-reg('wav', () => import('@audio/wav-decode'))
+reg('wav', () => import('@audio/decode-wav'))
 reg('qoa', () => import('qoa-format').then(m => ({ decoder: async () => ({ decode: chunk => m.decode(chunk) }) })))
 
-reg('aac', () => import('@audio/aac-decode'))
-reg('aiff', () => import('@audio/aiff-decode'))
-reg('caf', () => import('@audio/caf-decode'))
-reg('webm', () => import('@audio/webm-decode'))
-reg('amr', () => import('@audio/amr-decode'))
-reg('wma', () => import('@audio/wma-decode'))
+reg('aac', () => import('@audio/decode-aac'))
+reg('aiff', () => import('@audio/decode-aiff'))
+reg('caf', () => import('@audio/decode-caf'))
+reg('webm', () => import('@audio/decode-webm'))
+reg('amr', () => import('@audio/decode-amr'))
+reg('wma', () => import('@audio/decode-wma'))
 
 // TODO: remove in next major
 export const decoders = decode

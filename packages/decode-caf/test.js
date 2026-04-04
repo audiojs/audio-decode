@@ -1,4 +1,4 @@
-import decode, { decoder } from './caf-decode.js'
+import decode, { decoder } from './decode-caf.js'
 import { readFileSync } from 'fs'
 
 let pass = 0, fail = 0

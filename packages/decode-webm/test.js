@@ -1,4 +1,4 @@
-import decode, { decoder } from './webm-decode.js'
+import decode, { decoder } from './decode-webm.js'
 import { execSync } from 'child_process'
 import { existsSync, readFileSync, mkdirSync } from 'fs'
 

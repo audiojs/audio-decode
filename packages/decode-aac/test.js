@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs'
-import decode, { decoder } from './aac-decode.js'
+import decode, { decoder } from './decode-aac.js'
 
 let pass = 0, fail = 0
 function ok(cond, msg) {

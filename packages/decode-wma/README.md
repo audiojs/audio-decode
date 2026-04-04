@@ -1,4 +1,4 @@
-# wma-decode
+# decode-wma
 
 Decode WMA audio to PCM float samples. ASF demuxer in pure JS, WMA decoding via [RockBox](https://www.rockbox.org/) fixed-point decoder compiled to WASM (70 KB).
 

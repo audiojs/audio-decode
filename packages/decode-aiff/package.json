@@ -1,17 +1,17 @@
 {
-  "name": "@audio/aiff-decode",
+  "name": "@audio/decode-aiff",
   "version": "1.0.0",
   "description": "Decode AIFF/AIFF-C audio to PCM samples",
   "type": "module",
-  "main": "aiff-decode.js",
-  "types": "aiff-decode.d.ts",
+  "main": "decode-aiff.js",
+  "types": "decode-aiff.d.ts",
   "exports": {
-    ".": "./aiff-decode.js",
+    ".": "./decode-aiff.js",
     "./package.json": "./package.json"
   },
   "files": [
-    "aiff-decode.js",
-    "aiff-decode.d.ts",
+    "decode-aiff.js",
+    "decode-aiff.d.ts",
     "LICENSE"
   ],
   "keywords": [
@@ -25,13 +25,13 @@
   "publishConfig": { "access": "public" },
   "license": "MIT",
   "author": "audiojs",
-  "homepage": "https://github.com/audiojs/aiff-decode#readme",
+  "homepage": "https://github.com/audiojs/decode-aiff#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/audiojs/aiff-decode.git"
+    "url": "git+https://github.com/audiojs/decode-aiff.git"
   },
   "engines": { "node": ">=16" },
-  "bugs": "https://github.com/audiojs/aiff-decode/issues",
+  "bugs": "https://github.com/audiojs/decode-aiff/issues",
   "scripts": {
     "test": "node test.js"
   }

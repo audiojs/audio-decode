@@ -1,17 +1,17 @@
 {
-  "name": "@audio/wma-decode",
+  "name": "@audio/decode-wma",
   "version": "1.0.0",
   "description": "Decode WMA audio via RockBox WASM",
   "type": "module",
-  "main": "wma-decode.js",
-  "types": "wma-decode.d.ts",
+  "main": "decode-wma.js",
+  "types": "decode-wma.d.ts",
   "exports": {
-    ".": "./wma-decode.js",
+    ".": "./decode-wma.js",
     "./package.json": "./package.json"
   },
   "files": [
-    "wma-decode.js",
-    "wma-decode.d.ts",
+    "decode-wma.js",
+    "decode-wma.d.ts",
     "src/wma.wasm.cjs",
     "LICENSE"
   ],
@@ -33,11 +33,11 @@
   "publishConfig": { "access": "public" },
   "license": "GPL-2.0-or-later",
   "author": "audiojs",
-  "homepage": "https://github.com/audiojs/wma-decode#readme",
-  "bugs": "https://github.com/audiojs/wma-decode/issues",
+  "homepage": "https://github.com/audiojs/decode-wma#readme",
+  "bugs": "https://github.com/audiojs/decode-wma/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/audiojs/wma-decode.git"
+    "url": "git+https://github.com/audiojs/decode-wma.git"
   },
   "engines": {
     "node": ">=16"

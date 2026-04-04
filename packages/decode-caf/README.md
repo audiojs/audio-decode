@@ -1,4 +1,4 @@
-# caf-decode
+# decode-caf
 
 Decode Core Audio Format (CAF) audio to PCM float samples.
 

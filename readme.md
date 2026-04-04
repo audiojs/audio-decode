@@ -21,13 +21,13 @@ const { channelData, sampleRate } = await decode(anyAudioBuffer);
 | OGG Vorbis | [@wasm-audio-decoders/ogg-vorbis](https://github.com/eshaz/wasm-audio-decoders) | WASM |
 | FLAC | [@wasm-audio-decoders/flac](https://github.com/eshaz/wasm-audio-decoders) | WASM |
 | Opus | [ogg-opus-decoder](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder) | WASM |
-| M4A / AAC | [@audio/aac-decode](https://github.com/audiojs/aac-decode) | WASM |
+| M4A / AAC | [@audio/decode-aac](https://github.com/audiojs/decode-aac) | WASM |
 | QOA | [qoa-format](https://github.com/phoboslab/qoa) | JS |
-| AIFF | [@audio/aiff-decode](https://github.com/audiojs/aiff-decode) | JS |
-| CAF | [@audio/caf-decode](https://github.com/audiojs/caf-decode) | JS |
-| WebM | [@audio/webm-decode](https://github.com/audiojs/webm-decode) | JS + WASM |
-| AMR | [@audio/amr-decode](https://github.com/audiojs/amr-decode) | WASM |
-| WMA | [@audio/wma-decode](https://github.com/audiojs/wma-decode) | WASM |
+| AIFF | [@audio/decode-aiff](https://github.com/audiojs/decode-aiff) | JS |
+| CAF | [@audio/decode-caf](https://github.com/audiojs/decode-caf) | JS |
+| WebM | [@audio/decode-webm](https://github.com/audiojs/decode-webm) | JS + WASM |
+| AMR | [@audio/decode-amr](https://github.com/audiojs/decode-amr) | WASM |
+| WMA | [@audio/decode-wma](https://github.com/audiojs/decode-wma) | WASM |
 
 ### Whole-file
 

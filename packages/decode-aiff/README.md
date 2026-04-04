@@ -1,4 +1,4 @@
-# aiff-decode
+# decode-aiff
 
 Decode AIFF and AIFF-C audio to PCM float samples.<br>
 Part of [audio-decode](https://github.com/audiojs/audio-decode).

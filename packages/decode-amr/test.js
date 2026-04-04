@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs'
-import decode, { decoder } from './amr-decode.js'
+import decode, { decoder } from './decode-amr.js'
 
 let pass = 0, fail = 0
 function ok(cond, msg) {

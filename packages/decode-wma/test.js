@@ -1,4 +1,4 @@
-import decode, { demuxASF, parsePacket } from './wma-decode.js'
+import decode, { demuxASF, parsePacket } from './decode-wma.js'
 import { execSync } from 'child_process'
 import { existsSync, readFileSync, mkdirSync } from 'fs'
 

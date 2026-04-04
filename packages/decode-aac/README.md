@@ -1,4 +1,4 @@
-# aac-decode
+# decode-aac
 
 Decode AAC/M4A audio to PCM float samples. FAAD2 compiled to WASM — works in Node.js and browsers, no native dependencies.
 

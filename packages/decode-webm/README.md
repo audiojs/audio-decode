@@ -1,4 +1,4 @@
-# webm-decode
+# decode-webm
 
 Decode WebM audio (Opus and Vorbis) to PCM float samples. EBML demuxer in pure JS, codec decoding via WASM.
 
