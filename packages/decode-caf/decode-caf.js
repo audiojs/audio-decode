@@ -19,50 +19,52 @@ export default async function decode(src) {
 }
 
 /**
- * Create decoder instance
+ * Create decoder instance (streaming-aware)
  * @returns {Promise<{decode(chunk: Uint8Array): {channelData, sampleRate}, flush(), free()}>}
  */
 export async function decoder() {
-	return new CAFDecoder()
-}
-
-class CAFDecoder {
-	constructor() { this.done = false }
-
-	decode(data) {
-		if (this.done) throw Error('Decoder already freed')
-		if (!data || !data.byteLength) return EMPTY
-
-		let buf = data instanceof Uint8Array ? data : new Uint8Array(data)
-		if (buf.length < 8) return EMPTY
-
-		return decodeCAF(buf)
+	let hdr = null, left = null, freed = false
+	return {
+		decode(data) {
+			if (freed) throw Error('Decoder already freed')
+			if (!data || !data.byteLength) return EMPTY
+			let chunk = data instanceof Uint8Array ? data : new Uint8Array(data)
+			if (left) { chunk = catB(left, chunk); left = null }
+			if (!hdr) {
+				hdr = scanCafHdr(chunk)
+				if (!hdr) { left = chunk.slice(); return EMPTY }
+				chunk = chunk.subarray(hdr.dataStart)
+			}
+			let fb = hdr.frameBytes
+			let complete = Math.floor(chunk.length / fb) * fb
+			if (!complete) { if (chunk.length) left = chunk.slice(); return EMPTY }
+			if (chunk.length > complete) left = chunk.subarray(complete).slice()
+			return decodeCafRaw(chunk.subarray(0, complete), hdr)
+		},
+		flush() { left = null; return EMPTY },
+		free() { freed = true; left = null; hdr = null },
 	}
-
-	flush() { return EMPTY }
-
-	free() { this.done = true }
 }
 
-function decodeCAF(buf) {
-	let dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+function catB(a, b) {
+	let r = new Uint8Array(a.length + b.length)
+	r.set(a); r.set(b, a.length)
+	return r
+}
 
-	// File header: 'caff'(4) + version(2) + flags(2)
+function scanCafHdr(buf) {
+	if (buf.length < 8) return null
 	if (buf[0] !== 0x63 || buf[1] !== 0x61 || buf[2] !== 0x66 || buf[3] !== 0x66) throw Error('Not a CAF file')
+	let dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
 	if (dv.getUint16(4, false) !== 1) throw Error('Unsupported CAF version')
-
-	let off = 8, desc = null, dataStart = -1, dataLen = -1
-
-	// Parse chunks
+	let off = 8, desc = null
 	while (off + 12 <= buf.length) {
 		let type = String.fromCharCode(buf[off], buf[off + 1], buf[off + 2], buf[off + 3])
-		// size is int64 BE — read high/low 32
-		let sizeHi = dv.getUint32(off + 4, false)
-		let sizeLo = dv.getUint32(off + 8, false)
+		let sizeHi = dv.getUint32(off + 4, false), sizeLo = dv.getUint32(off + 8, false)
 		let size = sizeHi * 0x100000000 + sizeLo
 		off += 12
-
-		if (type === 'desc' && off + 32 <= buf.length) {
+		if (type === 'desc') {
+			if (off + 32 > buf.length) return null
 			desc = {
 				sampleRate: dv.getFloat64(off, false),
 				formatID: String.fromCharCode(buf[off + 8], buf[off + 9], buf[off + 10], buf[off + 11]),
@@ -70,37 +72,36 @@ function decodeCAF(buf) {
 				bytesPerPacket: dv.getUint32(off + 16, false),
 				framesPerPacket: dv.getUint32(off + 20, false),
 				channelsPerFrame: dv.getUint32(off + 24, false),
-				bitsPerChannel: dv.getUint32(off + 28, false)
+				bitsPerChannel: dv.getUint32(off + 28, false),
 			}
 		} else if (type === 'data') {
-			// skip 4-byte editCount
-			dataStart = off + 4
-			// size -1 (0xFFFFFFFFFFFFFFFF) means rest of file
-			dataLen = (sizeHi === 0xFFFFFFFF && sizeLo === 0xFFFFFFFF) ? buf.length - dataStart : size - 4
+			if (!desc) return null
+			let dataStart = off + 4 // skip editCount
+			if (dataStart > buf.length) return null
+			let { formatID, formatFlags, channelsPerFrame: ch, bitsPerChannel: bits } = desc
+			let bytesPerSample = bits >> 3
+			let frameBytes
+			if (formatID === 'alaw' || formatID === 'ulaw') frameBytes = ch
+			else frameBytes = ch * bytesPerSample
+			if (!frameBytes) return null
+			return { ...desc, dataStart, frameBytes }
 		}
-
 		if (size < 0) break
-		// -1 size: skip to end
 		if (sizeHi === 0xFFFFFFFF && sizeLo === 0xFFFFFFFF) break
 		off += size
 	}
+	return null
+}
 
-	if (!desc) throw Error('CAF: missing desc chunk')
-	if (dataStart < 0) throw Error('CAF: missing data chunk')
-	if (!desc.channelsPerFrame) throw Error('CAF: 0 channels')
-	if (!desc.sampleRate) throw Error('CAF: 0 sample rate')
-
-	let audioEnd = Math.min(dataStart + dataLen, buf.length)
-	let audioData = buf.subarray(dataStart, audioEnd)
-
-	let { formatID, formatFlags, channelsPerFrame: ch, bitsPerChannel: bits, sampleRate } = desc
-
+function decodeCafRaw(raw, hdr) {
+	let { sampleRate, formatID, formatFlags, channelsPerFrame: ch, bitsPerChannel: bits, frameBytes } = hdr
+	let frames = Math.floor(raw.length / frameBytes)
+	if (!frames) return EMPTY
 	let samples
-	if (formatID === 'lpcm') samples = decodeLPCM(audioData, formatFlags, bits, ch)
-	else if (formatID === 'alaw') samples = decodeAlaw(audioData, ch)
-	else if (formatID === 'ulaw') samples = decodeUlaw(audioData, ch)
+	if (formatID === 'lpcm') samples = decodeLPCM(raw, formatFlags, bits, ch)
+	else if (formatID === 'alaw') samples = decodeAlaw(raw, ch)
+	else if (formatID === 'ulaw') samples = decodeUlaw(raw, ch)
 	else throw Error('CAF: unsupported format ' + formatID)
-
 	return { channelData: samples, sampleRate }
 }
 

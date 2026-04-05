@@ -189,6 +189,7 @@ function parseWebm(buf) {
 
 	return {
 		codec: audioTrack.codec,
+		trackNum: audioTrack.number,
 		sampleRate: audioTrack.sampleRate,
 		channels: audioTrack.channels,
 		codecPrivate: audioTrack.codecPrivate,
@@ -402,34 +403,184 @@ export default async function decode(src) {
  * @returns {Promise<{decode(chunk: Uint8Array): Promise<AudioData>, flush(): Promise<AudioData>, free(): void}>}
  */
 export async function decoder() {
-	let freed = false, chunks = [], totalLen = 0
+	let freed = false
+	let codecDec = null, info = null
+	let accum = [], accumLen = 0 // only used for header parsing + Vorbis buffering
+	let scanner = null
 
 	return {
 		async decode(data) {
 			if (freed) throw Error('Decoder already freed')
 			if (!data?.length) return EMPTY
-			chunks.push(data instanceof Uint8Array ? data : new Uint8Array(data))
-			totalLen += data.length
+			let chunk = data instanceof Uint8Array ? data : new Uint8Array(data)
 
-			let buf = chunks.length === 1 ? chunks[0] : concat(chunks, totalLen)
-			let info = parseWebm(buf)
-			if (!info.frames.length) return EMPTY
+			// Phase 1: parse header to get track info
+			if (!info) {
+				accum.push(chunk)
+				accumLen += chunk.length
+				let buf = accum.length === 1 ? accum[0] : concat(accum, accumLen)
+				try { info = parseWebm(buf) } catch {
+					if (accumLen < 8192) return EMPTY
+					throw Error('Not a WebM file')
+				}
 
-			if (info.codec === 'A_OPUS') return decodeOpus(info)
-			if (info.codec === 'A_VORBIS') return decodeVorbis(info)
-			throw Error('Unsupported WebM codec: ' + info.codec)
+				if (info.codec === 'A_VORBIS') {
+					// Vorbis: buffer everything, decode on flush (needs full OGG wrapping)
+					return EMPTY
+				}
+
+				if (info.codec !== 'A_OPUS') throw Error('Unsupported WebM codec: ' + info.codec)
+
+				codecDec = await createOpusStream(info)
+				// Init incremental scanner — walk initial buffer to establish position
+				scanner = new EBMLScanner(info.trackNum)
+				scanner.init(buf)
+				accum = []; accumLen = 0
+
+				// Decode initial frames found by parseWebm
+				if (info.frames.length) {
+					let result = codecDec.dec.decodeFrames(info.frames)
+					return normResult(result)
+				}
+				return EMPTY
+			}
+
+			// Phase 2: Vorbis buffering
+			if (info.codec === 'A_VORBIS') {
+				accum.push(chunk)
+				accumLen += chunk.length
+				return EMPTY
+			}
+
+			// Phase 2: Opus incremental scanning
+			let frames = scanner.feed(chunk)
+			if (!frames.length) return EMPTY
+			let result = codecDec.dec.decodeFrames(frames)
+			return normResult(result)
 		},
 		async flush() {
 			if (freed) return EMPTY
-			freed = true
-			chunks = []; totalLen = 0
+
+			if (info?.codec === 'A_VORBIS' && accumLen) {
+				let buf = accum.length === 1 ? accum[0] : concat(accum, accumLen)
+				let fullInfo = parseWebm(buf)
+				let result = await decodeVorbis(fullInfo)
+				freed = true; accum = []; accumLen = 0
+				return result
+			}
+
+			if (codecDec) {
+				let result = codecDec.dec.flush?.()
+				let r = normResult(result)
+				codecDec.dec.free?.()
+				codecDec = null
+			}
+
+			freed = true; accum = []; accumLen = 0; scanner = null
 			return EMPTY
 		},
 		free() {
+			if (freed) return
 			freed = true
-			chunks = []; totalLen = 0
+			if (codecDec) { codecDec.dec.free?.(); codecDec = null }
+			accum = []; accumLen = 0; scanner = null
 		}
 	}
+}
+
+/**
+ * Incremental EBML scanner — extracts audio frames from Cluster/SimpleBlock
+ * elements without re-parsing the entire buffer.
+ */
+class EBMLScanner {
+	constructor(trackNum) {
+		this.trackNum = trackNum
+		this.left = null
+	}
+
+	// Walk initial buffer to establish position (frames already decoded by parseWebm)
+	init(buf) {
+		this.left = null
+		let pos = 0
+		while (pos < buf.length) {
+			let eid = readId(buf, pos)
+			if (!eid) break
+			let siz = readSize(buf, pos + eid.len)
+			if (!siz) break
+			let dataOff = pos + eid.len + siz.len
+			let id = eid.val, dataLen = siz.val
+			if (id === ID_SEGMENT || id === ID_CLUSTER || id === ID_BLOCK_GROUP) { pos = dataOff; continue }
+			if (dataLen < 0) break
+			if (dataOff + dataLen > buf.length) break
+			pos = dataOff + dataLen
+		}
+		if (pos < buf.length) this.left = buf.subarray(pos).slice()
+	}
+
+	// Feed new data, return extracted audio frames
+	feed(chunk) {
+		let buf = chunk
+		if (this.left) {
+			buf = new Uint8Array(this.left.length + chunk.length)
+			buf.set(this.left); buf.set(chunk, this.left.length)
+			this.left = null
+		}
+		let frames = [], pos = 0
+		while (pos < buf.length) {
+			let eid = readId(buf, pos)
+			if (!eid) break
+			let siz = readSize(buf, pos + eid.len)
+			if (!siz) break
+			let dataOff = pos + eid.len + siz.len
+			let id = eid.val, dataLen = siz.val
+			// Master elements: descend (skip element header)
+			if (id === ID_SEGMENT || id === ID_CLUSTER || id === ID_BLOCK_GROUP) { pos = dataOff; continue }
+			if (dataLen < 0) break // unknown-size non-master
+			if (dataOff + dataLen > buf.length) break // incomplete element
+			// SimpleBlock / Block: extract audio frame
+			if ((id === ID_SIMPLE_BLOCK || id === ID_BLOCK) && dataLen > 4) {
+				let bp = dataOff
+				let tn = readSize(buf, bp)
+				if (tn && tn.val === this.trackNum) {
+					bp += tn.len + 3
+					if (bp < dataOff + dataLen) frames.push(buf.slice(bp, dataOff + dataLen))
+				}
+			}
+			pos = dataOff + dataLen
+		}
+		if (pos < buf.length) this.left = buf.subarray(pos).slice()
+		return frames
+	}
+}
+
+async function createOpusStream(info) {
+	let { OpusDecoder } = await import('opus-decoder')
+	let head = info.codecPrivate ? parseOpusHead(info.codecPrivate) : null
+	let channels = head?.channels || info.channels || 2
+	let preSkip = head?.preSkip || 0
+	if (!preSkip && info.codecDelay) preSkip = Math.round(info.codecDelay / 1e9 * 48000)
+	let opts = { channels, sampleRate: 48000, preSkip }
+	if (head && head.mappingFamily > 0) {
+		opts.streamCount = head.streamCount
+		opts.coupledStreamCount = head.coupledStreamCount
+		opts.channelMappingTable = head.channelMappingTable
+	} else if (channels === 1) {
+		opts.streamCount = 1; opts.coupledStreamCount = 0; opts.channelMappingTable = [0]
+	} else if (channels === 2) {
+		opts.streamCount = 1; opts.coupledStreamCount = 1; opts.channelMappingTable = [0, 1]
+	}
+	let dec = new OpusDecoder(opts)
+	await dec.ready
+	return { dec, channels }
+}
+
+function normResult(result) {
+	if (!result?.channelData?.length) return EMPTY
+	let { channelData, samplesDecoded, sampleRate } = result
+	if (samplesDecoded != null && samplesDecoded < channelData[0].length)
+		channelData = channelData.map(ch => ch.subarray(0, samplesDecoded))
+	if (!channelData[0]?.length) return EMPTY
+	return { channelData, sampleRate }
 }
 
 function concat(parts, totalLen) {

@@ -62,6 +62,10 @@ class AMRDecoder {
 		this.done = false
 		this._ptr = 0
 		this._cap = 0
+		this._isWB = null
+		this._h = null
+		this._left = null
+		this._sr = 0
 	}
 
 	decode(data) {
@@ -69,28 +73,30 @@ class AMRDecoder {
 		if (!data?.length) return EMPTY
 
 		let buf = data instanceof Uint8Array ? data : new Uint8Array(data)
-
-		// detect AMR-NB "#!AMR\n" or AMR-WB "#!AMR-WB\n"
-		let isWB = false, off = 0
-		if (buf.length > 6 &&
-			buf[0] === 0x23 && buf[1] === 0x21 &&
-			buf[2] === 0x41 && buf[3] === 0x4D && buf[4] === 0x52) {
-			if (buf.length > 9 &&
-				buf[5] === 0x2D && buf[6] === 0x57 && buf[7] === 0x42 && buf[8] === 0x0A) {
-				isWB = true
-				off = 9
-			} else if (buf[5] === 0x0A) {
-				off = 6
-			}
+		if (this._left) {
+			let r = new Uint8Array(this._left.length + buf.length)
+			r.set(this._left); r.set(buf, this._left.length)
+			buf = r; this._left = null
 		}
 
-		if (!off) return EMPTY // no valid AMR header
+		let off = 0
 
-		let m = this.m
-		let sampleRate = isWB ? 16000 : 8000
-		let sizes = isWB ? WB_SIZES : NB_SIZES
+		// detect header on first call
+		if (this._isWB === null) {
+			if (buf.length < 9) { this._left = buf.slice(); return EMPTY }
+			if (buf[0] === 0x23 && buf[1] === 0x21 && buf[2] === 0x41 && buf[3] === 0x4D && buf[4] === 0x52) {
+				if (buf.length > 8 && buf[5] === 0x2D && buf[6] === 0x57 && buf[7] === 0x42 && buf[8] === 0x0A) {
+					this._isWB = true; off = 9
+				} else if (buf[5] === 0x0A) {
+					this._isWB = false; off = 6
+				}
+			}
+			if (this._isWB === null) return EMPTY
+			this._sr = this._isWB ? 16000 : 8000
+			this._h = this._isWB ? this.m._amr_wb_create() : this.m._amr_nb_create()
+		}
 
-		let h = isWB ? m._amr_wb_create() : m._amr_nb_create()
+		let sizes = this._isWB ? WB_SIZES : NB_SIZES
 		let chunks = []
 
 		while (off < buf.length) {
@@ -99,20 +105,19 @@ class AMRDecoder {
 			if (!frameSize || off + frameSize > buf.length) break
 
 			let ptr = this._alloc(frameSize)
-			m.HEAPU8.set(buf.subarray(off, off + frameSize), ptr)
+			this.m.HEAPU8.set(buf.subarray(off, off + frameSize), ptr)
 
-			let n = isWB
-				? m._amr_wb_decode(h, ptr, frameSize)
-				: m._amr_nb_decode(h, ptr, frameSize)
+			let n = this._isWB
+				? this.m._amr_wb_decode(this._h, ptr, frameSize)
+				: this.m._amr_nb_decode(this._h, ptr, frameSize)
 
-			let outPtr = isWB ? m._amr_wb_output() : m._amr_nb_output()
-			chunks.push(new Float32Array(m.HEAPF32.buffer, outPtr, n).slice())
+			let outPtr = this._isWB ? this.m._amr_wb_output() : this.m._amr_nb_output()
+			chunks.push(new Float32Array(this.m.HEAPF32.buffer, outPtr, n).slice())
 
 			off += frameSize
 		}
 
-		if (isWB) m._amr_wb_close(h)
-		else m._amr_nb_close(h)
+		if (off < buf.length) this._left = buf.subarray(off).slice()
 
 		if (!chunks.length) return EMPTY
 
@@ -122,19 +127,25 @@ class AMRDecoder {
 		let pos = 0
 		for (let c of chunks) { out.set(c, pos); pos += c.length }
 
-		return { channelData: [out], sampleRate }
+		return { channelData: [out], sampleRate: this._sr }
 	}
 
-	flush() { return EMPTY }
+	flush() { this._left = null; return EMPTY }
 
 	free() {
 		if (this.done) return
 		this.done = true
+		if (this._h) {
+			if (this._isWB) this.m._amr_wb_close(this._h)
+			else this.m._amr_nb_close(this._h)
+			this._h = null
+		}
 		if (this._ptr) {
 			this.m._free(this._ptr)
 			this._ptr = 0
 			this._cap = 0
 		}
+		this._left = null
 	}
 
 	_alloc(len) {

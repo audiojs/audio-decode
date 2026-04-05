@@ -396,3 +396,98 @@ t('custom decoder registration', async () => {
 	is(r.channelData[0].length, 10)
 	delete decode.test
 })
+
+// -- chunked streaming (VLC-style progressive decode) --
+
+async function* chunked(buf, size = 4096) {
+	buf = new Uint8Array(buf)
+	for (let off = 0; off < buf.length; off += size)
+		yield buf.subarray(off, Math.min(off + size, buf.length))
+}
+
+function streamTotal(gen, fmt) {
+	return (async () => {
+		let total = 0, sr = 0
+		for await (let r of decodeStream(gen, fmt)) {
+			sr = r.sampleRate; total += r.channelData[0].length
+		}
+		return { total, sr }
+	})()
+}
+
+t('chunked stream wav', async () => {
+	let ref = await decode(wav)
+	let { total, sr } = await streamTotal(chunked(wav, 4096), 'wav')
+	is(sr, 44100)
+	is(total, ref.channelData[0].length, 'samples match one-shot')
+})
+
+t('chunked stream mp3', async () => {
+	let ref = await decode(mp3)
+	let { total, sr } = await streamTotal(chunked(mp3, 8192), 'mp3')
+	is(sr, 44100)
+	is(near(total, ref.channelData[0].length, ref.channelData[0].length * 0.01), true, 'samples ~match')
+})
+
+t('chunked stream flac', async () => {
+	let ref = await decode(flac)
+	let { total, sr } = await streamTotal(chunked(flac, 8192), 'flac')
+	is(sr, 44100)
+	is(total, ref.channelData[0].length, 'lossless samples exact')
+})
+
+t('chunked stream opus', async () => {
+	let ref = await decode(opus)
+	let { total, sr } = await streamTotal(chunked(opus, 8192), 'opus')
+	is(sr, 48000)
+	is(near(total, ref.channelData[0].length, ref.channelData[0].length * 0.01), true, 'samples ~match')
+})
+
+t('chunked stream ogg vorbis', async () => {
+	let ref = await decode(ogg)
+	let { total, sr } = await streamTotal(chunked(ogg, 8192), 'oga')
+	is(sr, 44100)
+	is(near(total, ref.channelData[0].length, ref.channelData[0].length * 0.01), true, 'samples ~match')
+})
+
+t('chunked stream aiff', async () => {
+	let ref = await decode(aiff)
+	let { total, sr } = await streamTotal(chunked(aiff, 4096), 'aiff')
+	is(sr, 44100)
+	is(total, ref.channelData[0].length, 'samples match one-shot')
+})
+
+t('chunked stream caf', async () => {
+	let ref = await decode(caf)
+	let { total, sr } = await streamTotal(chunked(caf, 4096), 'caf')
+	is(sr, 44100)
+	is(total, ref.channelData[0].length, 'samples match one-shot')
+})
+
+t('chunked stream webm', async () => {
+	let ref = await decode(webm)
+	let { total, sr } = await streamTotal(chunked(webm, 8192), 'webm')
+	is(sr, 48000)
+	is(near(total, ref.channelData[0].length, ref.channelData[0].length * 0.02), true, 'samples ~match')
+})
+
+t('chunked stream m4a', async () => {
+	let ref = await decode(m4a)
+	let { total, sr } = await streamTotal(chunked(m4a, 16384), 'm4a')
+	is(sr, 44100)
+	is(total, ref.channelData[0].length, 'buffered M4A matches one-shot')
+})
+
+t('chunked stream tiny chunks wav', async () => {
+	// 64 bytes — smaller than WAV header, forces buffering
+	let ref = await decode(wav)
+	let { total } = await streamTotal(chunked(wav, 64), 'wav')
+	is(total, ref.channelData[0].length, 'tiny chunks still decode all samples')
+})
+
+t('chunked stream yields multiple results', async () => {
+	// verify streaming actually yields multiple chunks (not one big blob)
+	let count = 0
+	for await (let r of decodeStream(chunked(wav, 4096), 'wav')) count++
+	is(count > 1, true, 'multiple yields from stream')
+})

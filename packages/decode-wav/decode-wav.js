@@ -7,99 +7,6 @@
 
 const EMPTY = Object.freeze({ channelData: [], sampleRate: 0 })
 
-const decoders = {
-	pcm8(buf, off, ch, frames, nCh) {
-		let src = new Uint8Array(buf, off)
-		for (let i = 0, p = 0; i < frames; i++)
-			for (let c = 0; c < nCh; c++) {
-				let v = src[p++] - 128
-				ch[c][i] = v < 0 ? v / 128 : v / 127
-			}
-	},
-	pcm16(buf, off, ch, frames, nCh) {
-		let src = new Int16Array(buf, off)
-		for (let i = 0, p = 0; i < frames; i++)
-			for (let c = 0; c < nCh; c++) {
-				let v = src[p++]
-				ch[c][i] = v < 0 ? v / 32768 : v / 32767
-			}
-	},
-	pcm24(buf, off, ch, frames, nCh) {
-		let src = new Uint8Array(buf, off)
-		for (let i = 0, p = 0; i < frames; i++)
-			for (let c = 0; c < nCh; c++) {
-				let v = src[p] | (src[p + 1] << 8) | (src[p + 2] << 16); p += 3
-				if (v >= 0x800000) v -= 0x1000000
-				ch[c][i] = v < 0 ? v / 8388608 : v / 8388607
-			}
-	},
-	pcm32(buf, off, ch, frames, nCh) {
-		let src = new Int32Array(buf, off)
-		for (let i = 0, p = 0; i < frames; i++)
-			for (let c = 0; c < nCh; c++) {
-				let v = src[p++]
-				ch[c][i] = v < 0 ? v / 2147483648 : v / 2147483647
-			}
-	},
-	pcm32f(buf, off, ch, frames, nCh) {
-		let src = new Float32Array(buf, off)
-		for (let i = 0, p = 0; i < frames; i++)
-			for (let c = 0; c < nCh; c++) ch[c][i] = src[p++]
-	},
-	pcm64f(buf, off, ch, frames, nCh) {
-		// slice to ensure 8-byte alignment (WAV data offset may not be aligned)
-		let src = new Float64Array(buf.slice(off, off + frames * nCh * 8))
-		for (let i = 0, p = 0; i < frames; i++)
-			for (let c = 0; c < nCh; c++) ch[c][i] = src[p++]
-	},
-}
-
-function parseWav(data) {
-	let buf = data instanceof Uint8Array ? data.buffer : data
-	let off = data instanceof Uint8Array ? data.byteOffset : 0
-	let end = off + (data instanceof Uint8Array ? data.byteLength : data.byteLength)
-	let v = new DataView(buf)
-	let pos = off
-
-	function u8()  { return v.getUint8(pos++) }
-	function u16() { let x = v.getUint16(pos, true); pos += 2; return x }
-	function u32() { let x = v.getUint32(pos, true); pos += 4; return x }
-	function str(n) { let s = ''; for (let i = 0; i < n; i++) s += String.fromCharCode(u8()); return s }
-
-	if (str(4) !== 'RIFF') throw TypeError('Not a WAV file')
-	u32() // file size
-	if (str(4) !== 'WAVE') throw TypeError('Not a WAV file')
-
-	let fmt
-	while (pos < end) {
-		let type = str(4), size = u32(), next = pos + size
-		if (type === 'fmt ') {
-			let formatId = u16()
-			if (formatId !== 1 && formatId !== 3) throw TypeError('Unsupported WAV format: 0x' + formatId.toString(16))
-			fmt = {
-				float: formatId === 3,
-				channels: u16(),
-				sampleRate: u32(),
-				byteRate: u32(),
-				blockSize: u16(),
-				bitDepth: u16(),
-			}
-		} else if (type === 'data') {
-			if (!fmt) throw TypeError('Missing fmt chunk')
-			let frames = Math.floor(size / fmt.blockSize)
-			let ch = Array.from({ length: fmt.channels }, () => new Float32Array(frames))
-			let key = 'pcm' + fmt.bitDepth + (fmt.float ? 'f' : '')
-			let dec = decoders[key]
-			if (!dec) throw TypeError('Unsupported WAV bit depth: ' + fmt.bitDepth)
-			dec(buf, pos, ch, frames, fmt.channels)
-			return { channelData: ch, sampleRate: fmt.sampleRate }
-		}
-		pos = next
-	}
-
-	return EMPTY
-}
-
 export default async function decode(src) {
 	let dec = await decoder()
 	try { return dec.decode(src instanceof Uint8Array ? src : new Uint8Array(src)) }
@@ -107,14 +14,91 @@ export default async function decode(src) {
 }
 
 export async function decoder() {
-	let freed = false
+	let hdr = null, left = null, freed = false
 	return {
 		decode(data) {
 			if (freed) throw Error('Decoder already freed')
 			if (!data?.length) return EMPTY
-			return parseWav(data)
+			let chunk = data instanceof Uint8Array ? data : new Uint8Array(data)
+			if (left) { chunk = cat(left, chunk); left = null }
+			if (!hdr) {
+				hdr = scanWavHdr(chunk)
+				if (!hdr) { left = chunk.slice(); return EMPTY }
+				chunk = chunk.subarray(hdr.dataStart)
+			}
+			let fb = hdr.blockSize
+			let complete = Math.floor(chunk.length / fb) * fb
+			if (!complete) { if (chunk.length) left = chunk.slice(); return EMPTY }
+			if (chunk.length > complete) left = chunk.subarray(complete).slice()
+			return decodeRaw(chunk.subarray(0, complete), hdr)
 		},
-		flush() { return EMPTY },
-		free() { freed = true },
+		flush() { left = null; return EMPTY },
+		free() { freed = true; left = null; hdr = null },
 	}
+}
+
+function cat(a, b) {
+	let r = new Uint8Array(a.length + b.length)
+	r.set(a); r.set(b, a.length)
+	return r
+}
+
+function s4(b, o) { return String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3]) }
+
+function scanWavHdr(b) {
+	if (b.length < 12) return null
+	let dv = new DataView(b.buffer, b.byteOffset, b.byteLength)
+	if (s4(b, 0) !== 'RIFF' || s4(b, 8) !== 'WAVE') throw TypeError('Not a WAV file')
+	let pos = 12, fmt = null
+	while (pos + 8 <= b.length) {
+		let type = s4(b, pos), size = dv.getUint32(pos + 4, true)
+		if (type === 'fmt ') {
+			if (pos + 24 > b.length) return null
+			let fid = dv.getUint16(pos + 8, true)
+			if (fid !== 1 && fid !== 3) throw TypeError('Unsupported WAV format: 0x' + fid.toString(16))
+			fmt = {
+				float: fid === 3, channels: dv.getUint16(pos + 10, true),
+				sampleRate: dv.getUint32(pos + 12, true),
+				blockSize: dv.getUint16(pos + 20, true), bitDepth: dv.getUint16(pos + 22, true),
+			}
+		} else if (type === 'data') {
+			if (!fmt) return null
+			return { ...fmt, dataStart: pos + 8 }
+		}
+		pos += 8 + size
+	}
+	return null
+}
+
+function decodeRaw(raw, hdr) {
+	let { channels: nCh, bitDepth, float: isFloat, sampleRate, blockSize } = hdr
+	let frames = Math.floor(raw.length / blockSize)
+	if (!frames) return EMPTY
+	let ch = Array.from({ length: nCh }, () => new Float32Array(frames))
+	let dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength)
+	let p = 0
+	if (isFloat && bitDepth === 64) {
+		for (let i = 0; i < frames; i++) for (let c = 0; c < nCh; c++) { ch[c][i] = dv.getFloat64(p, true); p += 8 }
+	} else if (isFloat && bitDepth === 32) {
+		for (let i = 0; i < frames; i++) for (let c = 0; c < nCh; c++) { ch[c][i] = dv.getFloat32(p, true); p += 4 }
+	} else if (bitDepth === 8) {
+		for (let i = 0; i < frames; i++) for (let c = 0; c < nCh; c++) {
+			let v = raw[p++] - 128; ch[c][i] = v < 0 ? v / 128 : v / 127
+		}
+	} else if (bitDepth === 16) {
+		for (let i = 0; i < frames; i++) for (let c = 0; c < nCh; c++) {
+			let v = dv.getInt16(p, true); p += 2; ch[c][i] = v < 0 ? v / 32768 : v / 32767
+		}
+	} else if (bitDepth === 24) {
+		for (let i = 0; i < frames; i++) for (let c = 0; c < nCh; c++) {
+			let v = raw[p] | (raw[p + 1] << 8) | (raw[p + 2] << 16); p += 3
+			if (v >= 0x800000) v -= 0x1000000
+			ch[c][i] = v < 0 ? v / 8388608 : v / 8388607
+		}
+	} else if (bitDepth === 32) {
+		for (let i = 0; i < frames; i++) for (let c = 0; c < nCh; c++) {
+			let v = dv.getInt32(p, true); p += 4; ch[c][i] = v < 0 ? v / 2147483648 : v / 2147483647
+		}
+	} else { throw TypeError('Unsupported WAV bit depth: ' + bitDepth) }
+	return { channelData: ch, sampleRate }
 }

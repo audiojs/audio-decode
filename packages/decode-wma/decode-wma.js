@@ -374,6 +374,8 @@ class WMADecoder {
 		this.done = false
 		this._ptr = 0
 		this._cap = 0
+		this._meta = null // parsed ASF metadata
+		this._left = null // leftover bytes (partial packet)
 	}
 
 	decode(data) {
@@ -381,45 +383,69 @@ class WMADecoder {
 		if (!data?.length) return EMPTY
 
 		let buf = data instanceof Uint8Array ? data : new Uint8Array(data)
-		let asf = demuxASF(buf)
+		if (this._left) { buf = catW(this._left, buf); this._left = null }
 
-		if (!asf.packets.length) return EMPTY
+		// Phase 1: parse header, init WASM, decode initial packets
+		if (!this._meta) {
+			let asf
+			try { asf = demuxASF(buf) } catch {
+				this._left = buf.slice()
+				return EMPTY
+			}
 
-		let fmt = WMA_FORMATS[asf.formatTag]
-		if (!fmt) throw Error('Unsupported WMA format tag: 0x' + asf.formatTag.toString(16))
+			if (!asf.packets.length && !asf.packetSize) return EMPTY
 
-		this.sr = asf.sampleRate
-		this.ch = asf.channels
+			let fmt = WMA_FORMATS[asf.formatTag]
+			if (!fmt) throw Error('Unsupported WMA format tag: 0x' + asf.formatTag.toString(16))
+			this.sr = asf.sampleRate
+			this.ch = asf.channels
+			this._meta = asf
 
-		let m = this.m
+			let m = this.m
+			let extraPtr = 0, extraLen = 0
+			if (asf.codecData?.length) {
+				extraPtr = this._alloc(asf.codecData.length)
+				m.HEAPU8.set(asf.codecData, extraPtr)
+				extraLen = asf.codecData.length
+			}
+			this.h = m._wma_create(
+				asf.channels, asf.sampleRate, asf.bitRate,
+				asf.blockAlign, asf.formatTag, asf.bitsPerSample,
+				extraPtr, extraLen
+			)
+			if (!this.h) throw Error('WMA decoder init failed')
 
-		// Init WASM decoder with audio properties
-		let extraPtr = 0, extraLen = 0
-		if (asf.codecData?.length) {
-			extraPtr = this._alloc(asf.codecData.length)
-			m.HEAPU8.set(asf.codecData, extraPtr)
-			extraLen = asf.codecData.length
+			// Compute data start + consumed offset to keep leftover
+			let headerSize = u64(buf, 16)
+			let datOff = Number(headerSize) + 50
+			let consumed = datOff + asf.packets.length * asf.packetSize
+			if (consumed < buf.length) this._left = buf.subarray(consumed).slice()
+
+			if (!asf.packets.length) return EMPTY
+			return this._decodePkts(asf.packets, asf)
 		}
 
-		this.h = m._wma_create(
-			asf.channels, asf.sampleRate, asf.bitRate,
-			asf.blockAlign, asf.formatTag, asf.bitsPerSample,
-			extraPtr, extraLen
-		)
-		if (!this.h) throw Error('WMA decoder init failed')
+		// Phase 2: incremental — extract fixed-size packets from new data
+		let ps = this._meta.packetSize
+		let pkts = []
+		let pos = 0
+		while (pos + ps <= buf.length) {
+			pkts.push(buf.subarray(pos, pos + ps))
+			pos += ps
+		}
+		if (pos < buf.length) this._left = buf.subarray(pos).slice()
+		if (!pkts.length) return EMPTY
+		return this._decodePkts(pkts, this._meta)
+	}
 
-		// Extract payloads from packets and decode
-		// Each payload is one blockAlign-sized WMA superframe
-		let chunks = []
-		let totalPerCh = 0
-		let channels = asf.channels
-		let errors = 0
+	_decodePkts(pkts, asf) {
+		let m = this.m
+		let chunks = [], totalPerCh = 0, channels = this.ch, errors = 0
 		let ba = asf.blockAlign
 
-		for (let pkt of asf.packets) {
+		for (let pkt of pkts) {
 			let payloads = parsePacket(pkt, asf.packetSize)
 			for (let payload of payloads) {
-				// Split payload into blockAlign-sized frames
 				for (let off = 0; off + ba <= payload.length; off += ba) {
 					let frame = payload.subarray(off, off + ba)
 					let ptr = this._alloc(ba)
@@ -434,8 +460,7 @@ class WMADecoder {
 					if (ch) channels = ch
 
 					let spc = n / channels
-					let samples = new Float32Array(m.HEAPF32.buffer, out, n).slice()
-					chunks.push({ data: samples, ch: channels, spc })
+					chunks.push({ data: new Float32Array(m.HEAPF32.buffer, out, n).slice(), ch: channels, spc })
 					totalPerCh += spc
 				}
 			}
@@ -446,7 +471,6 @@ class WMADecoder {
 			return EMPTY
 		}
 
-		// De-interleave
 		let channelData = Array.from({ length: channels }, () => new Float32Array(totalPerCh))
 		let pos = 0
 		for (let { data, ch, spc } of chunks) {
@@ -460,7 +484,7 @@ class WMADecoder {
 		return { channelData, sampleRate: this.sr }
 	}
 
-	flush() { return EMPTY }
+	flush() { this._left = null; return EMPTY }
 
 	free() {
 		if (this.done) return
@@ -475,6 +499,7 @@ class WMADecoder {
 			this._ptr = 0
 			this._cap = 0
 		}
+		this._left = null; this._meta = null
 	}
 
 	_alloc(len) {
@@ -485,4 +510,10 @@ class WMADecoder {
 		}
 		return this._ptr
 	}
+}
+
+function catW(a, b) {
+	let r = new Uint8Array(a.length + b.length)
+	r.set(a); r.set(b, a.length)
+	return r
 }

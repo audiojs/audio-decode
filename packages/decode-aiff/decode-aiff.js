@@ -465,7 +465,9 @@ export default async function decode(src) {
 	let buf = src instanceof Uint8Array ? src : src instanceof ArrayBuffer ? new Uint8Array(src) : src
 	let dec = await decoder()
 	try {
-		return dec.decode(buf)
+		let result = dec.decode(buf)
+		if (!result.channelData.length) result = dec.flush()
+		return result
 	} finally {
 		dec.free()
 	}
@@ -476,14 +478,106 @@ export default async function decode(src) {
  * @returns {Promise<{decode(chunk: Uint8Array): {channelData, sampleRate}, flush(), free()}>}
  */
 export async function decoder() {
-	let freed = false
+	let hdr = null, left = null, freed = false
 	return {
 		decode(data) {
 			if (freed) throw Error('Decoder already freed')
 			if (!data?.length) return EMPTY
-			return parseAiff(data)
+			let chunk = data instanceof Uint8Array ? data : new Uint8Array(data)
+			if (left) { chunk = cat(left, chunk); left = null }
+			if (!hdr) {
+				hdr = scanAiffHdr(chunk)
+				if (!hdr) { left = chunk.slice(); return EMPTY }
+				// IMA4/GSM: buffer all SSND data, decode on flush
+				if (hdr.comp === 'ima4' || hdr.comp === 'GSM ' || hdr.comp === 'gsm ') {
+					left = chunk.slice()
+					return EMPTY
+				}
+				chunk = chunk.subarray(hdr.dataStart)
+			}
+			let fb = hdr.frameBytes
+			let complete = Math.floor(chunk.length / fb) * fb
+			if (!complete) { if (chunk.length) left = chunk.slice(); return EMPTY }
+			if (chunk.length > complete) left = chunk.subarray(complete).slice()
+			return decodeAiffRaw(chunk.subarray(0, complete), hdr)
 		},
-		flush() { return EMPTY },
-		free() { freed = true }
+		flush() {
+			if (hdr && left && (hdr.comp === 'ima4' || hdr.comp === 'GSM ' || hdr.comp === 'gsm ')) {
+				let result = parseAiff(left)
+				left = null
+				return result
+			}
+			left = null
+			return EMPTY
+		},
+		free() { freed = true; left = null; hdr = null },
 	}
+}
+
+function cat(a, b) {
+	let r = new Uint8Array(a.length + b.length)
+	r.set(a); r.set(b, a.length)
+	return r
+}
+
+function scanAiffHdr(b) {
+	if (!b || b.length < 12) return null
+	if (str4(b, 0) !== 'FORM') throw Error('Not an AIFF file')
+	let form = str4(b, 8)
+	if (form !== 'AIFF' && form !== 'AIFC') throw Error('Not an AIFF file')
+	let isAIFC = form === 'AIFC'
+	let nCh = 0, bps = 0, sr = 0, comp = 'NONE', commFound = false
+	let pos = 12, end = Math.min(8 + r32(b, 4), b.length)
+	while (pos + 8 <= end) {
+		let ckId = str4(b, pos), ckSize = r32(b, pos + 4), ckData = pos + 8
+		if (ckId === 'COMM') {
+			if (ckData + 18 > b.length) return null
+			nCh = r16(b, ckData)
+			bps = r16(b, ckData + 6)
+			sr = readF80(b, ckData + 8)
+			if (isAIFC && ckSize >= 22 && ckData + 22 <= b.length) comp = str4(b, ckData + 18)
+			commFound = true
+		} else if (ckId === 'SSND') {
+			if (!commFound) return null
+			if (ckData + 8 > b.length) return null
+			let dataOff = r32(b, ckData)
+			let dataStart = ckData + 8 + dataOff
+			let cUpper = comp.toUpperCase()
+			let byteDepth = Math.ceil(bps / 8)
+			let frameBytes
+			if (comp === 'fl32' || comp === 'FL32') frameBytes = nCh * 4
+			else if (comp === 'fl64' || comp === 'FL64') frameBytes = nCh * 8
+			else if (comp === 'alaw' || comp === 'ulaw' || comp === 'ULAW') frameBytes = nCh
+			else if (comp === 'ima4' || comp === 'GSM ' || comp === 'gsm ') frameBytes = 1 // block-based, handled via flush
+			else frameBytes = nCh * byteDepth
+			return { nCh, bps, sr, comp, byteDepth, frameBytes, dataStart, isAIFC }
+		}
+		pos = ckData + ckSize + (ckSize & 1)
+	}
+	return null
+}
+
+function decodeAiffRaw(raw, hdr) {
+	let { nCh, bps, sr, comp, byteDepth, frameBytes } = hdr
+	let frames = Math.floor(raw.length / frameBytes)
+	if (!frames) return EMPTY
+	let channelData = Array.from({ length: nCh }, () => new Float32Array(frames))
+	let cUpper = comp.toUpperCase()
+	let p = 0
+	if (cUpper === 'NONE' || cUpper === 'TWOS' || comp === 'twos') {
+		decodePCM_BE(raw, 0, channelData, frames, nCh, bps, byteDepth)
+	} else if (comp === 'sowt') {
+		decodePCM_LE(raw, 0, channelData, frames, nCh, bps, byteDepth)
+	} else if (comp === 'fl32' || comp === 'FL32') {
+		decodeFloat32_BE(raw, 0, channelData, frames, nCh)
+	} else if (comp === 'fl64' || comp === 'FL64') {
+		decodeFloat64_BE(raw, 0, channelData, frames, nCh)
+	} else if (comp === 'alaw') {
+		decodeLaw(raw, 0, channelData, frames, nCh, ALAW_TBL)
+	} else if (comp === 'ulaw' || comp === 'ULAW') {
+		decodeLaw(raw, 0, channelData, frames, nCh, ULAW_TBL)
+	} else {
+		throw Error('Unsupported AIFF-C compression: ' + comp)
+	}
+	return { channelData, sampleRate: sr }
 }
