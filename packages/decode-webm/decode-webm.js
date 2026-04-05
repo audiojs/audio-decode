@@ -315,20 +315,11 @@ function makeOggPage(packets, granule, serial, seq, flags) {
 }
 
 /**
- * Wrap raw Vorbis header packets and audio frames into an OGG bitstream.
- * Max 255 segments per OGG page. Granule on EOS page set high to avoid truncation
- * (exact sample count is unknown without deep Vorbis mode parsing).
+ * Wrap raw Vorbis frames into OGG page(s) for incremental feeding to OggVorbisDecoder.
+ * Granule = -1 (not set) — decoder uses internal sample counting.
  */
-function vorbisToOgg(headers, frames) {
-	let serial = 0x564F5242, pages = [], seq = 0 // "VORB"
-
-	// Page 0: BOS — identification header only, granule 0
-	pages.push(makeOggPage([headers[0]], 0, serial, seq++, 0x02))
-	// Page 1: comment + setup headers, granule 0
-	pages.push(makeOggPage([headers[1], headers[2]], 0, serial, seq++, 0))
-
-	// Audio pages — pack frames respecting 255-segment limit
-	let i = 0
+function framesToOgg(frames, serial, seqRef) {
+	let pages = [], i = 0
 	while (i < frames.length) {
 		let pkt = [], segCount = 0
 		while (i < frames.length) {
@@ -338,44 +329,31 @@ function vorbisToOgg(headers, frames) {
 			segCount += needed
 			i++
 		}
-		let isLast = i >= frames.length
-		// Granule: -1 (not set) on intermediate pages; max safe int on EOS to avoid truncation
-		pages.push(makeOggPage(pkt, isLast ? 0x1FFFFFFFFFFFFF : -1, serial, seq++, isLast ? 0x04 : 0))
+		pages.push(makeOggPage(pkt, -1, serial, seqRef.n++, 0))
 	}
-
 	let totalLen = 0
 	for (let p of pages) totalLen += p.length
-	let ogg = new Uint8Array(totalLen)
-	let off = 0
-	for (let p of pages) { ogg.set(p, off); off += p.length }
-	return ogg
+	return concat(pages, totalLen)
 }
 
 /**
- * Decode raw Vorbis frames via ogg-vorbis decoder
+ * Create OggVorbisDecoder initialized with Vorbis headers from WebM CodecPrivate
  */
-async function decodeVorbis(info) {
+async function createVorbisStream(info) {
 	let { OggVorbisDecoder } = await import('@wasm-audio-decoders/ogg-vorbis')
-
 	let headers = parseVorbisPrivate(info.codecPrivate)
 	if (!headers) throw Error('Invalid Vorbis CodecPrivate')
 
-	if (!info.frames.length) return EMPTY
-
-	let ogg = vorbisToOgg(headers, info.frames)
 	let dec = new OggVorbisDecoder()
 	await dec.ready
 
-	let result = await dec.decodeFile(ogg)
-	dec.free()
+	let serial = 0x564F5242, seq = { n: 0 }
+	// Feed header pages: BOS (identification) + comment/setup
+	let bos = makeOggPage([headers[0]], 0, serial, seq.n++, 0x02)
+	let hdr = makeOggPage([headers[1], headers[2]], 0, serial, seq.n++, 0)
+	await dec.decode(concat([bos, hdr], bos.length + hdr.length))
 
-	if (!result?.channelData?.length) return EMPTY
-
-	let { channelData, samplesDecoded, sampleRate } = result
-	if (samplesDecoded != null && samplesDecoded < channelData[0].length)
-		channelData = channelData.map(ch => ch.subarray(0, samplesDecoded))
-
-	return { channelData, sampleRate }
+	return { dec, serial, seq }
 }
 
 /**
@@ -405,7 +383,7 @@ export default async function decode(src) {
 export async function decoder() {
 	let freed = false
 	let codecDec = null, info = null
-	let accum = [], accumLen = 0 // only used for header parsing + Vorbis buffering
+	let accum = [], accumLen = 0 // header parsing accumulator
 	let scanner = null
 
 	return {
@@ -425,13 +403,13 @@ export async function decoder() {
 				}
 
 				if (info.codec === 'A_VORBIS') {
-					// Vorbis: buffer everything, decode on flush (needs full OGG wrapping)
-					return EMPTY
+					codecDec = await createVorbisStream(info)
+				} else if (info.codec === 'A_OPUS') {
+					codecDec = await createOpusStream(info)
+				} else {
+					throw Error('Unsupported WebM codec: ' + info.codec)
 				}
 
-				if (info.codec !== 'A_OPUS') throw Error('Unsupported WebM codec: ' + info.codec)
-
-				codecDec = await createOpusStream(info)
 				// Init incremental scanner — walk initial buffer to establish position
 				scanner = new EBMLScanner(info.trackNum)
 				scanner.init(buf)
@@ -439,51 +417,48 @@ export async function decoder() {
 
 				// Decode initial frames found by parseWebm
 				if (info.frames.length) {
+					if (info.codec === 'A_VORBIS') {
+						let ogg = framesToOgg(info.frames, codecDec.serial, codecDec.seq)
+						let result = await codecDec.dec.decode(ogg)
+						return normResult(result)
+					}
 					let result = codecDec.dec.decodeFrames(info.frames)
 					return normResult(result)
 				}
 				return EMPTY
 			}
 
-			// Phase 2: Vorbis buffering
-			if (info.codec === 'A_VORBIS') {
-				accum.push(chunk)
-				accumLen += chunk.length
-				return EMPTY
-			}
-
-			// Phase 2: Opus incremental scanning
+			// Phase 2: incremental scanning
 			let frames = scanner.feed(chunk)
 			if (!frames.length) return EMPTY
+			if (info.codec === 'A_VORBIS') {
+				let ogg = framesToOgg(frames, codecDec.serial, codecDec.seq)
+				let result = await codecDec.dec.decode(ogg)
+				return normResult(result)
+			}
 			let result = codecDec.dec.decodeFrames(frames)
 			return normResult(result)
 		},
 		async flush() {
 			if (freed) return EMPTY
 
-			if (info?.codec === 'A_VORBIS' && accumLen) {
-				let buf = accum.length === 1 ? accum[0] : concat(accum, accumLen)
-				let fullInfo = parseWebm(buf)
-				let result = await decodeVorbis(fullInfo)
-				freed = true; accum = []; accumLen = 0
-				return result
-			}
-
 			if (codecDec) {
-				let result = codecDec.dec.flush?.()
+				let result = await codecDec.dec.flush?.()
 				let r = normResult(result)
 				codecDec.dec.free?.()
 				codecDec = null
+				freed = true; scanner = null
+				return r
 			}
 
-			freed = true; accum = []; accumLen = 0; scanner = null
+			freed = true; scanner = null
 			return EMPTY
 		},
 		free() {
 			if (freed) return
 			freed = true
 			if (codecDec) { codecDec.dec.free?.(); codecDec = null }
-			accum = []; accumLen = 0; scanner = null
+			scanner = null
 		}
 	}
 }

@@ -7,11 +7,14 @@ import opus from 'audio-lena/opus';
 import aiff from 'audio-lena/aiff';
 import caf from 'audio-lena/caf';
 import webm from 'audio-lena/webm';
+import aac from 'audio-lena/aac';
 import t, { is } from 'tst';
 import m4a from 'audio-lena/m4a';
 import { readFileSync } from 'fs';
 
 const qoa = readFileSync(new URL('./fixtures/qoa-sample.qoa', import.meta.url))
+const amrNb = readFileSync(new URL('./packages/decode-amr/fixtures/test-nb.amr', import.meta.url))
+const wmaStereo = readFileSync(new URL('./packages/decode-wma/fixtures/stereo.wma', import.meta.url))
 
 const dur = r => r.channelData[0].length / r.sampleRate
 const rms = f32 => { let s = 0; for (let i = 0; i < f32.length; i++) s += f32[i] * f32[i]; return Math.sqrt(s / f32.length) }
@@ -180,6 +183,27 @@ t('stream caf', async () => {
 t('stream webm', async () => {
 	let dec = await decode.webm()
 	let r = await dec(new Uint8Array(webm))
+	is(r.channelData[0].length > 0, true)
+	await dec()
+})
+
+t('stream aac', async () => {
+	let dec = await decode.aac()
+	let r = await dec(new Uint8Array(aac))
+	is(r.channelData[0].length > 0, true)
+	await dec()
+})
+
+t('stream amr', async () => {
+	let dec = await decode.amr()
+	let r = await dec(new Uint8Array(amrNb))
+	is(r.channelData[0].length > 0, true)
+	await dec()
+})
+
+t('stream wma', async () => {
+	let dec = await decode.wma()
+	let r = await dec(new Uint8Array(wmaStereo))
 	is(r.channelData[0].length > 0, true)
 	await dec()
 })
@@ -476,6 +500,27 @@ t('chunked stream m4a', async () => {
 	let { total, sr } = await streamTotal(chunked(m4a, 16384), 'm4a')
 	is(sr, 44100)
 	is(total, ref.channelData[0].length, 'buffered M4A matches one-shot')
+})
+
+t('chunked stream aac', async () => {
+	let ref = await decode(aac)
+	let { total, sr } = await streamTotal(chunked(aac, 4096), 'aac')
+	is(sr, ref.sampleRate)
+	is(near(total, ref.channelData[0].length, ref.channelData[0].length * 0.01), true, 'ADTS samples ~match')
+})
+
+t('chunked stream amr', async () => {
+	let ref = await decode(amrNb)
+	let { total, sr } = await streamTotal(chunked(amrNb, 1024), 'amr')
+	is(sr, 8000)
+	is(total, ref.channelData[0].length, 'AMR samples match one-shot')
+})
+
+t('chunked stream wma', async () => {
+	let ref = await decode(wmaStereo)
+	let { total, sr } = await streamTotal(chunked(wmaStereo, 8192), 'wma')
+	is(sr, ref.sampleRate)
+	is(near(total, ref.channelData[0].length, ref.channelData[0].length * 0.02), true, 'WMA samples ~match')
 })
 
 t('chunked stream tiny chunks wav', async () => {

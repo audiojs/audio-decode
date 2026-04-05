@@ -21,7 +21,7 @@ const EMPTY = Object.freeze({ channelData: Object.freeze([]), sampleRate: 0 })
 export default async function decode(src) {
 	if (!src || typeof src === 'string' || !(src.buffer || src.byteLength || src.length))
 		throw TypeError('Expected ArrayBuffer or Uint8Array')
-	let buf = new Uint8Array(src.buffer || src)
+	let buf = new Uint8Array(src)
 
 	let type = getType(buf)
 	if (!type) throw Error('Unknown audio format')
@@ -116,31 +116,7 @@ reg('flac', () => import('@wasm-audio-decoders/flac').then(m => ({ decoder: asyn
 reg('opus', () => import('ogg-opus-decoder').then(m => ({ decoder: async () => { let d = new m.OggOpusDecoder(); await d.ready; return d } })))
 reg('oga', () => import('@wasm-audio-decoders/ogg-vorbis').then(m => ({ decoder: async () => { let d = new m.OggVorbisDecoder(); await d.ready; return d } })))
 
-// M4A needs full file (moov atom can be at end) — buffer chunks until flush
-decode.m4a = fmt('m4a', async () => {
-	const { decoder } = await import('@audio/decode-aac')
-	let dec = await decoder()
-	let chunks = [], decoded = false
-	return streamDecoder(
-		chunk => {
-			if (!decoded && chunk.length > 8 && chunk[4] === 0x66 && chunk[5] === 0x74 && chunk[6] === 0x79 && chunk[7] === 0x70) {
-				let r = dec.decode(chunk)
-				if (r.channelData.length) { decoded = true; chunks = null; return r }
-			}
-			if (!decoded) chunks.push(chunk)
-			return EMPTY
-		},
-		() => {
-			if (decoded || !chunks.length) return EMPTY
-			let total = chunks.reduce((a, c) => a + c.length, 0)
-			let buf = new Uint8Array(total), off = 0
-			for (let c of chunks) { buf.set(c, off); off += c.length }
-			chunks = null
-			return dec.decode(buf)
-		},
-		() => { chunks = null; dec.free() }
-	)
-})
+reg('m4a', () => import('@audio/decode-aac'))
 
 reg('wav', () => import('@audio/decode-wav'))
 reg('qoa', () => import('qoa-format').then(m => ({ decoder: async () => ({ decode: chunk => m.decode(chunk) }) })))
