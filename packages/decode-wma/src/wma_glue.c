@@ -16,8 +16,20 @@
 #define EXPORT
 #endif
 
-/* Pull in the decoder — it's a single-file implementation */
-#include "../lib/rockbox-wma/wmadeci.c"
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#define EXPORT EMSCRIPTEN_KEEPALIVE
+#else
+#define EXPORT
+#endif
+
+/* Pull in the decoder — it's a single-file implementation.
+   wmadeci.c typedefs are patched out by build.sh (conflict with stdint.h). */
+#include "_wmadeci_patched.c"
 
 typedef struct {
     CodecContext ctx;

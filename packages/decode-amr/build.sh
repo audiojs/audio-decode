@@ -195,6 +195,7 @@ INCS="
   -I $OC/amr_nb/dec/include
   -I $OC/amr_nb/common/include
   -I $OC/amr_nb/common/src
+  -I $OC/amr_nb/enc/src
   -I $OC/amr_wb/dec/src
   -I $OC/amr_wb/dec/include
   -I $OC/common/dec/include

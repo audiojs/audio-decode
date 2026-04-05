@@ -19,10 +19,16 @@ fi
 
 OUT=src/wma.wasm
 
+# Patch wmadeci.c typedefs that conflict with stdint.h (char vs signed char)
+PATCHED=src/_wmadeci_patched.c
+sed 's/^typedef .*int[0-9]*_t;//' lib/rockbox-wma/wmadeci.c > "$PATCHED"
+trap "rm -f $PATCHED" EXIT
+
 echo "Compiling RockBox WMA WASM module..."
 emcc \
   src/wma_glue.c \
   -I lib/rockbox-wma \
+  -Wno-typedef-redefinition \
   -O3 \
   -flto \
   -s WASM=1 \

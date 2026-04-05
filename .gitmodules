@@ -1,0 +1,9 @@
+[submodule "packages/decode-aac/lib/faad2"]
+	path = packages/decode-aac/lib/faad2
+	url = https://github.com/knik0/faad2.git
+[submodule "packages/decode-wma/lib/rockbox-wma"]
+	path = packages/decode-wma/lib/rockbox-wma
+	url = https://github.com/xOpenLee/wmaDecode.git
+[submodule "packages/decode-amr/lib/opencore-amr"]
+	path = packages/decode-amr/lib/opencore-amr
+	url = https://git.code.sf.net/p/opencore-amr/code
