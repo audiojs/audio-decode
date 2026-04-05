@@ -1,6 +1,6 @@
 {
   "name": "@audio/decode-caf",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Decode CAF (Core Audio Format) audio to PCM samples",
   "type": "module",
   "main": "decode-caf.js",
@@ -26,7 +26,9 @@
     "decoder",
     "pcm"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": "audiojs",
   "homepage": "https://github.com/audiojs/decode-caf#readme",
@@ -34,6 +36,8 @@
     "type": "git",
     "url": "git+https://github.com/audiojs/decode-caf.git"
   },
-  "engines": { "node": ">=16" },
+  "engines": {
+    "node": ">=16"
+  },
   "bugs": "https://github.com/audiojs/decode-caf/issues"
 }

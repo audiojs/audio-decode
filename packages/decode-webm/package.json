@@ -1,6 +1,6 @@
 {
   "name": "@audio/decode-webm",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Decode WebM audio (Opus, Vorbis) to PCM samples",
   "type": "module",
   "main": "decode-webm.js",
@@ -29,7 +29,9 @@
     "decoder",
     "pcm"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": "audiojs",
   "homepage": "https://github.com/audiojs/decode-webm#readme",

@@ -1,6 +1,6 @@
 {
   "name": "@audio/decode-amr",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Decode AMR-NB/WB audio via opencore-amr WASM",
   "type": "module",
   "main": "decode-amr.js",
@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build": "bash build.sh",
+    "prepack": "npm run build",
     "test": "node test.js"
   },
   "files": [
@@ -30,7 +31,9 @@
     "opencore-amr",
     "speech"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "Apache-2.0",
   "author": "audiojs",
   "homepage": "https://github.com/audiojs/decode-amr#readme",
