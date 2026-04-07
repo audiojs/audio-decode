@@ -3,6 +3,7 @@
   "version": "3.8.0",
   "description": "Decode audio data in node or browser",
   "type": "module",
+  "sideEffects": false,
   "main": "audio-decode.js",
   "types": "audio-decode.d.ts",
   "exports": {
