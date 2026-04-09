@@ -1,8 +1,10 @@
 /**
- * Audio decoder: whole-file and streaming
+ * Audio decoder: whole-file and chunked
  * @module audio-decode
  *
  * let { channelData, sampleRate } = await decode(buf)
+ *
+ * for await (let pcm of decode(source, 'mp3')) { ... }
  *
  * let dec = await decode.mp3()
  * let { channelData, sampleRate } = await dec(chunk)
@@ -14,11 +16,16 @@ import getType from 'audio-type';
 const EMPTY = Object.freeze({ channelData: Object.freeze([]), sampleRate: 0 })
 
 /**
- * Whole-file decode: auto-detects format
- * @param {ArrayBuffer|Uint8Array} src - encoded audio data
- * @returns {Promise<{channelData: Float32Array[], sampleRate: number}>}
+ * Decode audio.
+ * 1 arg:  whole-file — auto-detects format, returns Promise<AudioData>
+ * 2 args: chunked — streams from ReadableStream/AsyncIterable, returns AsyncGenerator<AudioData>
  */
-export default async function decode(src) {
+export default function decode(src, format) {
+	if (format) return decodeChunked(src, format)
+	return decodeWhole(src)
+}
+
+async function decodeWhole(src) {
 	if (!src || typeof src === 'string' || !(src.buffer || src.byteLength || src.length))
 		throw TypeError('Expected ArrayBuffer or Uint8Array')
 	let buf = new Uint8Array(src)
@@ -36,18 +43,17 @@ export default async function decode(src) {
 }
 
 /**
- * Decode a ReadableStream or async iterable of audio chunks
- * @param {ReadableStream|AsyncIterable} stream
+ * Decode a ReadableStream or async iterable of encoded audio chunks.
+ * @param {ReadableStream|AsyncIterable} source
  * @param {string} format - codec name
  * @returns {AsyncGenerator<{channelData: Float32Array[], sampleRate: number}>}
  */
-export async function* decodeStream(stream, format) {
+export async function* decodeChunked(source, format) {
 	if (!decode[format]) throw Error('No decoder for ' + format)
 	let dec = await decode[format]()
 	try {
-		// Safari ReadableStream doesn't support for-await, use getReader() if available
-		if (stream.getReader) {
-			let reader = stream.getReader()
+		if (source.getReader) {
+			let reader = source.getReader()
 			while (true) {
 				let { done, value } = await reader.read()
 				if (done) break
@@ -55,7 +61,7 @@ export async function* decodeStream(stream, format) {
 				if (result.channelData.length) yield result
 			}
 		} else {
-			for await (let chunk of stream) {
+			for await (let chunk of source) {
 				let result = await dec(chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk))
 				if (result.channelData.length) yield result
 			}
@@ -93,7 +99,6 @@ function reg(name, load) {
 	})
 }
 
-// TODO: remove backward compat (src arg, .stream) in next major
 function fmt(name, init) {
 	let fn = async (src) => {
 		if (!src) return init()
@@ -105,7 +110,6 @@ function fmt(name, init) {
 			return merge(result, flushed)
 		} catch (e) { dec.free(); throw e }
 	}
-	fn.stream = init
 	return fn
 }
 
@@ -127,9 +131,6 @@ reg('caf', () => import('@audio/decode-caf'))
 reg('webm', () => import('@audio/decode-webm'))
 reg('amr', () => import('@audio/decode-amr'))
 reg('wma', () => import('@audio/decode-wma'))
-
-// TODO: remove in next major
-export const decoders = decode
 
 /**
  * StreamDecoder — a callable function:
@@ -155,7 +156,6 @@ function streamDecoder(onDecode, onFlush, onFree) {
 			return result
 		} catch (e) { onFree?.(); throw e }
 	}
-	fn.decode = fn // TODO: remove in next major
 	fn.flush = async () => {
 		if (done) return EMPTY
 		return onFlush ? norm(await onFlush()) : EMPTY

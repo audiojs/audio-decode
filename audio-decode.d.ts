@@ -17,12 +17,15 @@ type Format = 'mp3' | 'flac' | 'opus' | 'oga' | 'm4a' | 'wav' | 'qoa' | 'aac' | 
 interface FormatDecoder {
   /** Create a decoder instance. */
   (): Promise<StreamDecoder>;
-  /** @deprecated Use decode.mp3() instead. */
-  stream(): Promise<StreamDecoder>;
 }
 
 /** Whole-file decode: auto-detects format. */
 declare function decode(buf: ArrayBuffer | Uint8Array): Promise<AudioData>;
+/** Chunked decode from stream or async iterable. */
+declare function decode(
+  source: ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>,
+  format: Format
+): AsyncGenerator<AudioData>;
 
 declare namespace decode {
   export const mp3: FormatDecoder;
@@ -42,11 +45,8 @@ declare namespace decode {
 
 export default decode;
 
-/** @deprecated Use audio-decode/stream */
-export function decodeStream(
-  stream: ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>,
+/** Chunked decode from stream or async iterable. */
+export function decodeChunked(
+  source: ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>,
   format: Format
 ): AsyncGenerator<AudioData>;
-
-/** @deprecated Use decode.mp3, decode.flac, etc. */
-export declare const decoders: typeof decode;

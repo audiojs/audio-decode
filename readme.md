@@ -48,17 +48,19 @@ let b = await dec(chunk2)
 await dec()                  // close
 ```
 
-## Streaming
+### Streaming
 
-With `ReadableStream`, `fetch`, or Node stream:
+Pass an async iterable source and format string — returns an async generator:
 
 ```js
-import decodeStream from 'audio-decode/stream'
+import decode from 'audio-decode'
 
-for await (let { channelData, sampleRate } of decodeStream(response.body, 'mp3')) {
+for await (let { channelData, sampleRate } of decode(response.body, 'mp3')) {
   // process chunks
 }
 ```
+
+Works with `ReadableStream`, `fetch` body, Node stream, or any async iterable.
 
 Formats: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`, `aac`, `aiff`, `caf`, `webm`, `amr`, `wma`.
 

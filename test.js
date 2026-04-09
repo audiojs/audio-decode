@@ -1,4 +1,4 @@
-import decode, { decodeStream } from './audio-decode.js';
+import decode from './audio-decode.js';
 import wav from 'audio-lena/wav';
 import mp3 from 'audio-lena/mp3';
 import ogg from 'audio-lena/ogg';
@@ -294,7 +294,7 @@ t('concurrent decoding', async () => {
 })
 
 t('concurrent stream decoders', async () => {
-	let [d1, d2] = await Promise.all([decode.mp3.stream(), decode.flac.stream()])
+	let [d1, d2] = await Promise.all([decode.mp3(), decode.flac()])
 	let [r1, r2] = await Promise.all([
 		d1(new Uint8Array(mp3)),
 		d2(new Uint8Array(flac)),
@@ -318,43 +318,43 @@ t('minimal invalid buffer', async () => {
 	is(threw, true)
 })
 
-// -- decodeStream --
+// -- chunked decode --
 
-t('decodeStream mp3', async () => {
+t('decode mp3', async () => {
 	let chunks = [new Uint8Array(mp3)]
 	async function* gen() { for (let c of chunks) yield c }
 	let total = 0
-	for await (let r of decodeStream(gen(), 'mp3')) {
+	for await (let r of decode(gen(), 'mp3')) {
 		is(r.sampleRate > 0, true)
 		total += r.channelData[0].length
 	}
 	is(total > 0, true, 'decoded samples')
 })
 
-t('decodeStream ReadableStream', async () => {
+t('decode ReadableStream', async () => {
 	let data = new Uint8Array(wav)
 	let stream = new ReadableStream({
 		start(ctrl) { ctrl.enqueue(data); ctrl.close() }
 	})
 	let total = 0
-	for await (let r of decodeStream(stream, 'wav')) {
+	for await (let r of decode(stream, 'wav')) {
 		is(r.sampleRate, 44100)
 		total += r.channelData[0].length
 	}
 	is(total > 0, true)
 })
 
-t('decodeStream m4a', async () => {
+t('decode m4a', async () => {
 	async function* gen() { yield new Uint8Array(m4a) }
 	let total = 0
-	for await (let r of decodeStream(gen(), 'm4a')) {
+	for await (let r of decode(gen(), 'm4a')) {
 		is(r.sampleRate, 44100)
 		total += r.channelData[0].length
 	}
 	is(total > 0, true)
 })
 
-t('decodeStream m4a chunked', async () => {
+t('decode m4a chunked', async () => {
 	// M4A needs full file (moov atom), so chunked streaming must buffer until flush
 	let buf = new Uint8Array(m4a), chunkSize = 16384
 	async function* gen() {
@@ -362,16 +362,16 @@ t('decodeStream m4a chunked', async () => {
 			yield buf.subarray(off, Math.min(off + chunkSize, buf.length))
 	}
 	let total = 0
-	for await (let r of decodeStream(gen(), 'm4a')) {
+	for await (let r of decode(gen(), 'm4a')) {
 		total += r.channelData[0].length
 	}
 	let ref = await decode(m4a)
 	is(total, ref.channelData[0].length, 'chunked M4A matches one-shot')
 })
 
-t('decodeStream unknown format', async () => {
+t('decode unknown format', async () => {
 	let threw = false
-	try { for await (let _ of decodeStream([], 'xyz')) {} } catch { threw = true }
+	try { for await (let _ of decode([], 'xyz')) {} } catch { threw = true }
 	is(threw, true)
 })
 
@@ -432,7 +432,7 @@ async function* chunked(buf, size = 4096) {
 function streamTotal(gen, fmt) {
 	return (async () => {
 		let total = 0, sr = 0
-		for await (let r of decodeStream(gen, fmt)) {
+		for await (let r of decode(gen, fmt)) {
 			sr = r.sampleRate; total += r.channelData[0].length
 		}
 		return { total, sr }
@@ -533,6 +533,6 @@ t('chunked stream tiny chunks wav', async () => {
 t('chunked stream yields multiple results', async () => {
 	// verify streaming actually yields multiple chunks (not one big blob)
 	let count = 0
-	for await (let r of decodeStream(chunked(wav, 4096), 'wav')) count++
+	for await (let r of decode(chunked(wav, 4096), 'wav')) count++
 	is(count > 1, true, 'multiple yields from stream')
 })
