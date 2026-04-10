@@ -42,7 +42,8 @@
   },
   "scripts": {
     "test": "node test.js",
-    "test:browser": "npx vite",
+    "test:browser": "node test.browser.js",
+    "test:all": "node test.js && node test.browser.js",
     "publish:all": "npm publish --workspaces && npm publish"
   },
   "repository": {

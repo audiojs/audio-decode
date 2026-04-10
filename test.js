@@ -10,11 +10,18 @@ import webm from 'audio-lena/webm';
 import aac from 'audio-lena/aac';
 import t, { is } from 'tst';
 import m4a from 'audio-lena/m4a';
-import { readFileSync } from 'fs';
 
-const qoa = readFileSync(new URL('./fixtures/qoa-sample.qoa', import.meta.url))
-const amrNb = readFileSync(new URL('./packages/decode-amr/fixtures/test-nb.amr', import.meta.url))
-const wmaStereo = readFileSync(new URL('./packages/decode-wma/fixtures/stereo.wma', import.meta.url))
+const isNode = typeof process !== 'undefined' && process.versions?.node
+const skip = (msg) => is(true, true, 'skip: ' + msg)
+async function readFile(url) {
+	if (isNode) return (await import('fs')).readFileSync(url)
+	let r = await fetch(url instanceof URL ? url.pathname : url)
+	return new Uint8Array(await r.arrayBuffer())
+}
+
+const qoa = await readFile(new URL('./fixtures/qoa-sample.qoa', import.meta.url))
+const amrNb = isNode ? await readFile(new URL('./packages/decode-amr/fixtures/test-nb.amr', import.meta.url)) : null
+const wmaStereo = isNode ? await readFile(new URL('./packages/decode-wma/fixtures/stereo.wma', import.meta.url)) : null
 
 const dur = r => r.channelData[0].length / r.sampleRate
 const rms = f32 => { let s = 0; for (let i = 0; i < f32.length; i++) s += f32[i] * f32[i]; return Math.sqrt(s / f32.length) }
@@ -61,6 +68,7 @@ t('opus', async () => {
 })
 
 t('m4a', async () => {
+	if (!isNode) return skip('aac wasm is cjs')
 	let r = await decode(m4a)
 	is(r.channelData.length, 2)
 	is(r.sampleRate, 44100)
@@ -69,7 +77,8 @@ t('m4a', async () => {
 })
 
 t('m4a iPhone voice memo', async () => {
-	let hk = readFileSync(new URL('./fixtures/hk.m4a', import.meta.url))
+	if (!isNode) return skip('aac wasm is cjs')
+	let hk = await readFile(new URL('./fixtures/hk.m4a', import.meta.url))
 	let r = await decode(hk)
 	is(r.channelData.length, 1)
 	is(r.sampleRate, 48000)
@@ -112,6 +121,7 @@ t('uint8array input', async () => {
 })
 
 t('buffer input', async () => {
+	if (!isNode) return is(true, true, 'skip in browser')
 	let r = await decode(Buffer.from(wav))
 	is(near(dur(r), 12.27), true)
 })
@@ -156,6 +166,7 @@ t('stream oga', async () => {
 })
 
 t('stream m4a', async () => {
+	if (!isNode) return skip('aac wasm is cjs')
 	let dec = await decode.m4a()
 	let r = await dec(new Uint8Array(m4a))
 	is(r.channelData.length > 0, true)
@@ -188,6 +199,7 @@ t('stream webm', async () => {
 })
 
 t('stream aac', async () => {
+	if (!isNode) return skip('aac wasm is cjs')
 	let dec = await decode.aac()
 	let r = await dec(new Uint8Array(aac))
 	is(r.channelData[0].length > 0, true)
@@ -195,6 +207,7 @@ t('stream aac', async () => {
 })
 
 t('stream amr', async () => {
+	if (!isNode) return skip('amr wasm is cjs')
 	let dec = await decode.amr()
 	let r = await dec(new Uint8Array(amrNb))
 	is(r.channelData[0].length > 0, true)
@@ -202,6 +215,7 @@ t('stream amr', async () => {
 })
 
 t('stream wma', async () => {
+	if (!isNode) return skip('wma wasm is cjs')
 	let dec = await decode.wma()
 	let r = await dec(new Uint8Array(wmaStereo))
 	is(r.channelData[0].length > 0, true)
@@ -345,6 +359,7 @@ t('decode ReadableStream', async () => {
 })
 
 t('decode m4a', async () => {
+	if (!isNode) return skip('aac wasm is cjs')
 	async function* gen() { yield new Uint8Array(m4a) }
 	let total = 0
 	for await (let r of decode(gen(), 'm4a')) {
@@ -355,6 +370,7 @@ t('decode m4a', async () => {
 })
 
 t('decode m4a chunked', async () => {
+	if (!isNode) return skip('aac wasm is cjs')
 	// M4A needs full file (moov atom), so chunked streaming must buffer until flush
 	let buf = new Uint8Array(m4a), chunkSize = 16384
 	async function* gen() {
@@ -411,6 +427,7 @@ t('mono mp3 decoded as 1 channel', async () => {
 })
 
 t('stereo m4a decoded as 2 channels', async () => {
+	if (!isNode) return skip('aac wasm is cjs')
 	let r = await decode(m4a)
 	is(r.channelData.length, 2, 'stereo m4a returns 2 channels')
 })
@@ -504,6 +521,7 @@ t('chunked stream webm', async () => {
 })
 
 t('chunked stream m4a', async () => {
+	if (!isNode) return skip('aac wasm is cjs')
 	let ref = await decode(m4a)
 	let { total, sr } = await streamTotal(chunked(m4a, 16384), 'm4a')
 	is(sr, 44100)
@@ -511,6 +529,7 @@ t('chunked stream m4a', async () => {
 })
 
 t('chunked stream aac', async () => {
+	if (!isNode) return skip('aac wasm is cjs')
 	let ref = await decode(aac)
 	let { total, sr } = await streamTotal(chunked(aac, 4096), 'aac')
 	is(sr, ref.sampleRate)
@@ -518,6 +537,7 @@ t('chunked stream aac', async () => {
 })
 
 t('chunked stream amr', async () => {
+	if (!isNode) return skip('amr wasm is cjs')
 	let ref = await decode(amrNb)
 	let { total, sr } = await streamTotal(chunked(amrNb, 1024), 'amr')
 	is(sr, 8000)
@@ -525,6 +545,7 @@ t('chunked stream amr', async () => {
 })
 
 t('chunked stream wma', async () => {
+	if (!isNode) return skip('wma wasm is cjs')
 	let ref = await decode(wmaStereo)
 	let { total, sr } = await streamTotal(chunked(wmaStereo, 8192), 'wma')
 	is(sr, ref.sampleRate)

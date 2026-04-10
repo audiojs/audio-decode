@@ -96,6 +96,25 @@ For selective loading in the browser (avoids bundling all codecs):
 
 Only list the codecs you need — each `@audio/decode-*` package bundles all its WASM/JS deps internally.
 
+### WebWorker
+
+Each `@audio/decode-*` package is a self-contained ESM module — import directly in a worker:
+
+```js
+// decode-worker.js
+import decode from '@audio/decode-mp3'
+
+self.onmessage = async ({ data }) => {
+  let pcm = await decode(data)
+  self.postMessage(pcm, pcm.channelData.map(ch => ch.buffer))
+}
+
+// main.js
+let worker = new Worker('./decode-worker.js', { type: 'module' })
+worker.postMessage(mp3buf, [mp3buf])
+worker.onmessage = ({ data }) => { /* { channelData, sampleRate } */ }
+```
+
 ## See also
 
 * [audio-type](https://github.com/audiojs/audio-type) – detect audio format from buffer.
