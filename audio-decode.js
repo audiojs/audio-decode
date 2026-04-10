@@ -1,10 +1,10 @@
 /**
- * Audio decoder: whole-file and chunked
+ * Audio decoder: whole-file, streaming, chunked
  * @module audio-decode
  *
  * let { channelData, sampleRate } = await decode(buf)
  *
- * for await (let pcm of decode(source, 'mp3')) { ... }
+ * for await (let pcm of decode.mp3(source)) { ... }
  *
  * let dec = await decode.mp3()
  * let { channelData, sampleRate } = await dec(chunk)
@@ -100,30 +100,35 @@ function reg(name, load) {
 }
 
 function fmt(name, init) {
-	let fn = async (src) => {
+	let fn = (src) => {
 		if (!src) return init()
-		console.warn('decode.' + name + '(data) is deprecated, use decode(data) or let dec = await decode.' + name + '()')
-		let dec = await init()
-		try {
-			let result = await dec(src instanceof Uint8Array ? src : new Uint8Array(src.buffer || src))
-			let flushed = await dec()
-			return merge(result, flushed)
-		} catch (e) { dec.free(); throw e }
+		// async iterable / ReadableStream → streaming decode
+		if (src[Symbol.asyncIterator] || src.getReader) return decodeChunked(src, name)
+		// buffer → whole-file decode
+		console.warn('decode.' + name + '(data) is deprecated, use decode(data)')
+		return (async () => {
+			let dec = await init()
+			try {
+				let result = await dec(src instanceof Uint8Array ? src : new Uint8Array(src.buffer || src))
+				let flushed = await dec()
+				return merge(result, flushed)
+			} catch (e) { dec.free(); throw e }
+		})()
 	}
 	return fn
 }
 
 // --- codecs ---
 
-reg('mp3', () => import('mpg123-decoder').then(m => ({ decoder: async () => { let d = new m.MPEGDecoder(); await d.ready; return d } })))
-reg('flac', () => import('@wasm-audio-decoders/flac').then(m => ({ decoder: async () => { let d = new m.FLACDecoder(); await d.ready; return d } })))
-reg('opus', () => import('ogg-opus-decoder').then(m => ({ decoder: async () => { let d = new m.OggOpusDecoder(); await d.ready; return d } })))
-reg('oga', () => import('@wasm-audio-decoders/ogg-vorbis').then(m => ({ decoder: async () => { let d = new m.OggVorbisDecoder(); await d.ready; return d } })))
+reg('mp3', () => import('@audio/decode-mp3'))
+reg('flac', () => import('@audio/decode-flac'))
+reg('opus', () => import('@audio/decode-opus'))
+reg('oga', () => import('@audio/decode-vorbis'))
 
 reg('m4a', () => import('@audio/decode-aac'))
 
 reg('wav', () => import('@audio/decode-wav'))
-reg('qoa', () => import('qoa-format').then(m => ({ decoder: async () => ({ decode: chunk => m.decode(chunk) }) })))
+reg('qoa', () => import('@audio/decode-qoa'))
 
 reg('aac', () => import('@audio/decode-aac'))
 reg('aiff', () => import('@audio/decode-aiff'))

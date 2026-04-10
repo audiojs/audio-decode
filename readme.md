@@ -12,22 +12,22 @@ import decode from 'audio-decode';
 const { channelData, sampleRate } = await decode(anyAudioBuffer);
 ```
 
-#### Supported formats:
+#### Supported formats
 
-| Format | Package | Engine |
-|--------|---------|--------|
-| MP3 | [mpg123-decoder](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/mpg123-decoder) | WASM |
-| WAV | [node-wav](https://www.npmjs.com/package/node-wav) | JS |
-| OGG Vorbis | [@wasm-audio-decoders/ogg-vorbis](https://github.com/eshaz/wasm-audio-decoders) | WASM |
-| FLAC | [@wasm-audio-decoders/flac](https://github.com/eshaz/wasm-audio-decoders) | WASM |
-| Opus | [ogg-opus-decoder](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder) | WASM |
-| M4A / AAC | [@audio/decode-aac](https://github.com/audiojs/decode-aac) | WASM |
-| QOA | [qoa-format](https://github.com/phoboslab/qoa) | JS |
-| AIFF | [@audio/decode-aiff](https://github.com/audiojs/decode-aiff) | JS |
-| CAF | [@audio/decode-caf](https://github.com/audiojs/decode-caf) | JS |
-| WebM | [@audio/decode-webm](https://github.com/audiojs/decode-webm) | JS + WASM |
-| AMR | [@audio/decode-amr](https://github.com/audiojs/decode-amr) | WASM |
-| WMA | [@audio/decode-wma](https://github.com/audiojs/decode-wma) | WASM |
+| Format | Package | Size | Engine |
+|--------|---------|------|--------|
+| MP3 | [@audio/decode-mp3](./packages/decode-mp3) | 92 KB | WASM |
+| WAV | [@audio/decode-wav](./packages/decode-wav) | 4 KB | JS |
+| OGG Vorbis | [@audio/decode-vorbis](./packages/decode-vorbis) | 164 KB | WASM |
+| FLAC | [@audio/decode-flac](./packages/decode-flac) | 133 KB | WASM |
+| Opus | [@audio/decode-opus](./packages/decode-opus) | 178 KB | WASM |
+| M4A / AAC | [@audio/decode-aac](./packages/decode-aac) | 368 KB | WASM |
+| QOA | [@audio/decode-qoa](./packages/decode-qoa) | 8 KB | JS |
+| AIFF | [@audio/decode-aiff](./packages/decode-aiff) | 20 KB | JS |
+| CAF | [@audio/decode-caf](./packages/decode-caf) | 7 KB | JS |
+| WebM | [@audio/decode-webm](./packages/decode-webm) | 263 KB | WASM |
+| AMR | [@audio/decode-amr](./packages/decode-amr) | 241 KB | WASM |
+| WMA | [@audio/decode-wma](./packages/decode-wma) | 91 KB | WASM |
 
 ### Whole-file
 
@@ -50,12 +50,10 @@ await dec()                  // close
 
 ### Streaming
 
-Pass an async iterable source and format string — returns an async generator:
-
 ```js
 import decode from 'audio-decode'
 
-for await (let { channelData, sampleRate } of decode(response.body, 'mp3')) {
+for await (let { channelData, sampleRate } of decode.mp3(response.body)) {
   // process chunks
 }
 ```
@@ -63,6 +61,40 @@ for await (let { channelData, sampleRate } of decode(response.body, 'mp3')) {
 Works with `ReadableStream`, `fetch` body, Node stream, or any async iterable.
 
 Formats: `mp3`, `flac`, `opus`, `oga`, `m4a`, `wav`, `qoa`, `aac`, `aiff`, `caf`, `webm`, `amr`, `wma`.
+
+### Browser
+
+Each codec is a self-contained bundle under `@audio/*` — no transitive deps, no import map bloat.
+For selective loading in the browser (avoids bundling all codecs):
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "audio-decode": "https://esm.sh/audio-decode",
+    "audio-type": "https://esm.sh/audio-type",
+    "@audio/decode-mp3": "https://esm.sh/@audio/decode-mp3",
+    "@audio/decode-wav": "https://esm.sh/@audio/decode-wav",
+    "@audio/decode-flac": "https://esm.sh/@audio/decode-flac",
+    "@audio/decode-opus": "https://esm.sh/@audio/decode-opus",
+    "@audio/decode-vorbis": "https://esm.sh/@audio/decode-vorbis",
+    "@audio/decode-aac": "https://esm.sh/@audio/decode-aac",
+    "@audio/decode-qoa": "https://esm.sh/@audio/decode-qoa",
+    "@audio/decode-aiff": "https://esm.sh/@audio/decode-aiff",
+    "@audio/decode-caf": "https://esm.sh/@audio/decode-caf",
+    "@audio/decode-webm": "https://esm.sh/@audio/decode-webm",
+    "@audio/decode-amr": "https://esm.sh/@audio/decode-amr",
+    "@audio/decode-wma": "https://esm.sh/@audio/decode-wma"
+  }
+}
+</script>
+<script type="module">
+  import decode from 'audio-decode'
+  let { channelData, sampleRate } = await decode(buf)
+</script>
+```
+
+Only list the codecs you need — each `@audio/decode-*` package bundles all its WASM/JS deps internally.
 
 ## See also
 

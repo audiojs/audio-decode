@@ -1,0 +1,47 @@
+{
+  "name": "@audio/decode-vorbis",
+  "version": "1.0.0",
+  "description": "Decode Ogg Vorbis audio via libvorbis WASM — self-contained bundle",
+  "type": "module",
+  "main": "decode-vorbis.js",
+  "types": "decode-vorbis.d.ts",
+  "exports": {
+    ".": "./decode-vorbis.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "decode-vorbis.js",
+    "decode-vorbis.d.ts",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bash build.sh",
+    "prepack": "npm run build",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "vorbis",
+    "ogg",
+    "audio",
+    "decode",
+    "decoder",
+    "wasm"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "audiojs",
+  "homepage": "https://github.com/audiojs/audio-decode/tree/main/packages/decode-vorbis#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiojs/audio-decode.git",
+    "directory": "packages/decode-vorbis"
+  },
+  "dependencies": {
+    "@wasm-audio-decoders/ogg-vorbis": "^0.1.20"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@audio/decode-qoa",
+  "version": "1.0.0",
+  "description": "Decode QOA (Quite OK Audio) — self-contained bundle",
+  "type": "module",
+  "main": "decode-qoa.js",
+  "types": "decode-qoa.d.ts",
+  "exports": {
+    ".": "./decode-qoa.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "decode-qoa.js",
+    "decode-qoa.d.ts",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bash build.sh",
+    "prepack": "npm run build",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "qoa",
+    "audio",
+    "decode",
+    "decoder",
+    "quite-ok-audio"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "audiojs",
+  "homepage": "https://github.com/audiojs/audio-decode/tree/main/packages/decode-qoa#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiojs/audio-decode.git",
+    "directory": "packages/decode-qoa"
+  },
+  "dependencies": {
+    "qoa-format": "^1.0.1"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

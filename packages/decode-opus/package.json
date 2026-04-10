@@ -1,0 +1,47 @@
+{
+  "name": "@audio/decode-opus",
+  "version": "1.0.0",
+  "description": "Decode Ogg Opus audio via libopus WASM — self-contained bundle",
+  "type": "module",
+  "main": "decode-opus.js",
+  "types": "decode-opus.d.ts",
+  "exports": {
+    ".": "./decode-opus.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "decode-opus.js",
+    "decode-opus.d.ts",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bash build.sh",
+    "prepack": "npm run build",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "opus",
+    "ogg",
+    "audio",
+    "decode",
+    "decoder",
+    "wasm"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "audiojs",
+  "homepage": "https://github.com/audiojs/audio-decode/tree/main/packages/decode-opus#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiojs/audio-decode.git",
+    "directory": "packages/decode-opus"
+  },
+  "dependencies": {
+    "ogg-opus-decoder": "^1.7.3"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

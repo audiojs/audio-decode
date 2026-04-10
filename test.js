@@ -386,6 +386,14 @@ t('decode.mp3() factory', async () => {
 	await dec()
 })
 
+t('decode.mp3(source) streaming', async () => {
+	let chunks = []
+	async function* gen() { for (let i = 0; i < mp3.byteLength; i += 4096) yield new Uint8Array(mp3.slice(i, i + 4096)) }
+	for await (let r of decode.mp3(gen())) chunks.push(r)
+	is(chunks.length > 0, true, 'got chunks')
+	is(chunks[0].sampleRate, 44100, 'sampleRate')
+})
+
 t('decode.aiff() factory', async () => {
 	let dec = await decode.aiff()
 	let r = await dec(new Uint8Array(aiff))
