@@ -1,4 +1,4 @@
-# decode-webm
+# @audio/decode-webm
 
 Decode WebM audio (Opus and Vorbis) to PCM float samples. EBML demuxer in pure JS, codec decoding via WASM.
 
@@ -7,13 +7,13 @@ Part of [audio-decode](https://github.com/audiojs/audio-decode).
 ## Install
 
 ```
-npm i @audio/webm-decode
+npm i @audio/decode-webm
 ```
 
 ## Usage
 
 ```js
-import decode from '@audio/webm-decode'
+import decode from '@audio/decode-webm'
 
 let { channelData, sampleRate } = await decode(webmBuffer)
 ```
@@ -21,7 +21,7 @@ let { channelData, sampleRate } = await decode(webmBuffer)
 ### Streaming
 
 ```js
-import { decoder } from '@audio/webm-decode'
+import { decoder } from '@audio/decode-webm'
 
 let dec = await decoder()
 let result = await dec.decode(chunk)

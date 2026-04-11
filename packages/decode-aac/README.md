@@ -1,17 +1,17 @@
-# decode-aac
+# @audio/decode-aac
 
 Decode AAC/M4A audio to PCM float samples. FAAD2 compiled to WASM — works in Node.js and browsers, no native dependencies.
 
 ## Install
 
 ```
-npm i @audio/aac-decode
+npm i @audio/decode-aac
 ```
 
 ## Usage
 
 ```js
-import decode from '@audio/aac-decode'
+import decode from '@audio/decode-aac'
 
 // M4A or raw ADTS — auto-detected
 let { channelData, sampleRate } = await decode(uint8array)
@@ -22,7 +22,7 @@ let { channelData, sampleRate } = await decode(uint8array)
 ### Streaming
 
 ```js
-import { decoder } from '@audio/aac-decode'
+import { decoder } from '@audio/decode-aac'
 
 let dec = await decoder()
 let { channelData, sampleRate } = dec.decode(chunk)

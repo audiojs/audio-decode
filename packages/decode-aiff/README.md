@@ -1,4 +1,4 @@
-# decode-aiff
+# @audio/decode-aiff
 
 Decode AIFF and AIFF-C audio to PCM float samples.<br>
 Part of [audio-decode](https://github.com/audiojs/audio-decode).
@@ -6,13 +6,13 @@ Part of [audio-decode](https://github.com/audiojs/audio-decode).
 ## Install
 
 ```
-npm i @audio/aiff-decode
+npm i @audio/decode-aiff
 ```
 
 ## Usage
 
 ```js
-import decode from '@audio/aiff-decode'
+import decode from '@audio/decode-aiff'
 
 let { channelData, sampleRate } = await decode(aiffBuffer)
 // channelData: Float32Array[] (one per channel)
@@ -22,7 +22,7 @@ let { channelData, sampleRate } = await decode(aiffBuffer)
 ### Streaming
 
 ```js
-import { decoder } from '@audio/aiff-decode'
+import { decoder } from '@audio/decode-aiff'
 
 let dec = await decoder()
 let result = dec.decode(chunk)

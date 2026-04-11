@@ -1,4 +1,4 @@
-# decode-amr
+# @audio/decode-amr
 
 Decode AMR-NB and AMR-WB audio to PCM float samples. [opencore-amr](https://sourceforge.net/projects/opencore-amr/) compiled to WASM — works in Node.js and browsers.
 
@@ -7,13 +7,13 @@ Part of [audio-decode](https://github.com/audiojs/audio-decode).
 ## Install
 
 ```
-npm i @audio/amr-decode
+npm i @audio/decode-amr
 ```
 
 ## Usage
 
 ```js
-import decode from '@audio/amr-decode'
+import decode from '@audio/decode-amr'
 
 // AMR-NB or AMR-WB — auto-detected from file header
 let { channelData, sampleRate } = await decode(amrBuffer)
@@ -24,7 +24,7 @@ let { channelData, sampleRate } = await decode(amrBuffer)
 ### Streaming
 
 ```js
-import { decoder } from '@audio/amr-decode'
+import { decoder } from '@audio/decode-amr'
 
 let dec = await decoder()
 let result = dec.decode(chunk)

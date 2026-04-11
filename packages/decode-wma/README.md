@@ -1,4 +1,4 @@
-# decode-wma
+# @audio/decode-wma
 
 Decode WMA audio to PCM float samples. ASF demuxer in pure JS, WMA decoding via [RockBox](https://www.rockbox.org/) fixed-point decoder compiled to WASM (70 KB).
 
@@ -7,13 +7,13 @@ Part of [audio-decode](https://github.com/audiojs/audio-decode).
 ## Install
 
 ```
-npm i @audio/wma-decode
+npm i @audio/decode-wma
 ```
 
 ## Usage
 
 ```js
-import decode from '@audio/wma-decode'
+import decode from '@audio/decode-wma'
 
 let { channelData, sampleRate } = await decode(wmaBuffer)
 ```
@@ -21,7 +21,7 @@ let { channelData, sampleRate } = await decode(wmaBuffer)
 ### Streaming
 
 ```js
-import { decoder } from '@audio/wma-decode'
+import { decoder } from '@audio/decode-wma'
 
 let dec = await decoder()
 let result = dec.decode(chunk)
@@ -31,7 +31,7 @@ dec.free()
 ### ASF demuxer only
 
 ```js
-import { demuxASF } from '@audio/wma-decode'
+import { demuxASF } from '@audio/decode-wma'
 
 let { channels, sampleRate, bitRate, packets } = demuxASF(buffer)
 ```

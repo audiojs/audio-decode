@@ -1,4 +1,4 @@
-# decode-caf
+# @audio/decode-caf
 
 Decode Core Audio Format (CAF) audio to PCM float samples.
 
@@ -7,13 +7,13 @@ Part of [audio-decode](https://github.com/audiojs/audio-decode).
 ## Install
 
 ```
-npm i @audio/caf-decode
+npm i @audio/decode-caf
 ```
 
 ## Usage
 
 ```js
-import decode from '@audio/caf-decode'
+import decode from '@audio/decode-caf'
 
 let { channelData, sampleRate } = await decode(cafBuffer)
 ```
@@ -21,7 +21,7 @@ let { channelData, sampleRate } = await decode(cafBuffer)
 ### Streaming
 
 ```js
-import { decoder } from '@audio/caf-decode'
+import { decoder } from '@audio/decode-caf'
 
 let dec = await decoder()
 let result = dec.decode(chunk)
