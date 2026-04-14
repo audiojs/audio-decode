@@ -117,10 +117,13 @@ worker.onmessage = ({ data }) => { /* { channelData, sampleRate } */ }
 
 ## See also
 
+* [audio-encode](https://github.com/audiojs/audio-encode) – encode PCM into any audio format.
 * [audio-type](https://github.com/audiojs/audio-type) – detect audio format from buffer.
+<!--
 * [wasm-audio-decoders](https://github.com/eshaz/wasm-audio-decoders) – compact & fast WASM audio decoders.
 * [AudioDecoder](https://developer.mozilla.org/en-US/docs/Web/API/AudioDecoder) – native WebCodecs decoder API.
 * [decodeAudioData](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/decodeAudioData) – built-in browser decoding method.
 * [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) – full encoding/decoding library.
+-->
 
 <p align="center"><a href="./LICENSE">MIT</a> • <a href="https://github.com/krishnized/license/">ॐ</a>
