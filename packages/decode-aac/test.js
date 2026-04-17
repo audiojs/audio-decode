@@ -95,6 +95,34 @@ console.log('lifecycle')
 	d.free()
 }
 
+// ---- M4A streaming (moov split across chunks, non-faststart layout) ----
+// Regression: github #44 — init fired on partial moov → garbage stsz/stco → 0 frames.
+console.log('M4A streaming')
+{
+	let ref = await decode(m4a)
+
+	for (let chunkSize of [16384, 4096, 1024, 256]) {
+		let dec = await decoder()
+		let chunks = []
+		for (let off = 0; off < m4a.length; off += chunkSize) {
+			let r = dec.decode(m4a.subarray(off, Math.min(off + chunkSize, m4a.length)))
+			if (r.channelData.length) chunks.push(r.channelData[0])
+		}
+		let f = dec.flush()
+		if (f.channelData.length) chunks.push(f.channelData[0])
+		dec.free()
+
+		let total = chunks.reduce((s, c) => s + c.length, 0)
+		ok(total === ref.channelData[0].length, 'chunk=' + chunkSize + ' count matches (' + total + ')')
+
+		let stream = new Float32Array(total), pos = 0
+		for (let c of chunks) { stream.set(c, pos); pos += c.length }
+		let maxDiff = 0
+		for (let i = 0; i < total; i++) maxDiff = Math.max(maxDiff, Math.abs(stream[i] - ref.channelData[0][i]))
+		ok(maxDiff === 0, 'chunk=' + chunkSize + ' content identical')
+	}
+}
+
 // ---- ADTS streaming (partial frame buffering) ----
 console.log('ADTS streaming')
 {

@@ -360,11 +360,18 @@ function parseBoxes(buf, start, end, cb) {
 		} else if (size < 8) {
 			break
 		}
-		if (off + size > end) size = end - off
 
 		let bodyOff = off + 8
+		let truncated = off + size > end
 
-		if (type === 'stsd') parseSampleDesc(buf, bodyOff, size - 8, cb)
+		// mdat carries raw frames — partial is fine; callers honour availability
+		if (type === 'mdat') {
+			cb(type, buf.subarray(bodyOff, truncated ? end : off + size), bodyOff)
+			if (truncated) break
+		}
+		// any other box must be fully present before parsing — partial tables yield garbage
+		else if (truncated) break
+		else if (type === 'stsd') parseSampleDesc(buf, bodyOff, size - 8, cb)
 		else if (CONTAINERS.has(type)) parseBoxes(buf, bodyOff + (type === 'meta' ? 4 : 0), off + size, cb)
 		else cb(type, buf.subarray(bodyOff, off + size), bodyOff)
 
@@ -432,8 +439,10 @@ function extractFrames(buf, stsz, stco, stsc) {
 		}
 		let off = stco[ci]
 		for (let s = 0; s < spc && si < stsz.length; s++) {
-			let sz = stsz[si++]
-			if (off + sz <= buf.length) frames.push(buf.subarray(off, off + sz))
+			let sz = stsz[si]
+			if (off + sz > buf.length) return frames  // sequential: first missing → rest missing
+			frames.push(buf.subarray(off, off + sz))
+			si++
 			off += sz
 		}
 	}
