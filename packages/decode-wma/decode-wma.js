@@ -427,6 +427,7 @@ class WMADecoder {
 
 		// Phase 2: incremental — extract fixed-size packets from new data
 		let ps = this._meta.packetSize
+		if (!ps) { this._left = buf; return EMPTY } // variable-size: accumulate, decode on flush
 		let pkts = []
 		let pos = 0
 		while (pos + ps <= buf.length) {
@@ -484,7 +485,12 @@ class WMADecoder {
 		return { channelData, sampleRate: this.sr }
 	}
 
-	flush() { this._left = null; return EMPTY }
+	flush() {
+		let r = EMPTY
+		if (this._left && this._meta && !this._meta.packetSize) r = this._decodePkts([this._left], this._meta)
+		this._left = null
+		return r
+	}
 
 	free() {
 		if (this.done) return
