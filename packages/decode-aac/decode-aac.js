@@ -61,7 +61,9 @@ class AACDecoder {
 		this._ptr = 0
 		this._cap = 0
 		this._left = null
-		this._m4a = null      // { sizes: number[], idx: number } — M4A streaming state
+		this._fileOff = 0     // absolute file offset of _left[0] (M4A streaming)
+		this._skip = 0        // bytes to discard from incoming data (M4A streaming, when next frame is past _left)
+		this._m4a = null      // M4A streaming iterator: { sizes, stco, stsc, idx, ci, sInC, spc, nextOff }
 		this._accum = null    // Uint8Array[] — M4A header accumulator
 		this._accumLen = 0
 	}
@@ -72,36 +74,18 @@ class AACDecoder {
 
 		let buf = data instanceof Uint8Array ? data : new Uint8Array(data)
 
-		// M4A streming phase 2: extract frames by known sizes
 		if (this._m4a) return this._feedM4AData(buf)
-
-		// M4A accumulating: waiting for moov + mdat header
-		if (this._accum) {
-			this._accum.push(buf)
+		if (this.h) return this._decodeADTS(buf)
+		// M4A: accumulating moov+mdat header, or first chunk starts with ftyp
+		if (this._accum || (buf.length > 8 && buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70)) {
+			(this._accum ??= []).push(buf)
 			this._accumLen += buf.length
 			return this._tryM4AInit()
 		}
-
-		// ADTS mode (already initialized)
-		if (this.h) return this._decodeADTS(buf)
-
-		// First call: detect format
-		if (buf.length > 8 && buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70) {
-			this._accum = [buf]
-			this._accumLen = buf.length
-			return this._tryM4AInit()
-		}
-
 		return this._decodeADTS(buf)
 	}
 
 	flush() {
-		if (this._accum?.length) {
-			// M4A moov-last: one-shot decode on accumulated data
-			let buf = this._catAccum()
-			this._accum = null; this._accumLen = 0
-			return this._decodeM4A(buf)
-		}
 		this._left = null
 		return EMPTY
 	}
@@ -121,6 +105,7 @@ class AACDecoder {
 		}
 		this._accum = null; this._accumLen = 0
 		this._m4a = null; this._left = null
+		this._fileOff = 0; this._skip = 0
 	}
 
 	_catAccum() {
@@ -133,18 +118,16 @@ class AACDecoder {
 	_tryM4AInit() {
 		let buf = this._catAccum()
 		let asc = null, stsz = null, stco = null, stsc = null
-		let mdatOff = 0, mdatLen = 0
 
-		parseBoxes(buf, 0, buf.length, (type, data, off) => {
+		parseBoxes(buf, 0, buf.length, (type, data) => {
 			if (type === 'esds') asc = parseEsds(data)
 			else if (type === 'stsz') stsz = parseStsz(data)
 			else if (type === 'stco') stco = parseStco(data)
 			else if (type === 'co64') stco = parseCo64(data)
 			else if (type === 'stsc') stsc = parseStsc(data)
-			else if (type === 'mdat') { mdatOff = off; mdatLen = data.length }
 		})
 
-		if (!asc) return EMPTY // moov not found yet
+		if (!asc || !stsz || !stco?.length) return EMPTY // moov/tables not ready
 
 		// Init WASM decoder with ASC
 		let m = this.m, h = m._aac_create()
@@ -158,47 +141,52 @@ class AACDecoder {
 		if (!this.ch) { m._aac_close(h); throw Error('M4A init: no channels in ASC') }
 		this.h = h
 
-		// Extract available frames using stco (correct absolute offsets)
-		let frames = (stsz && stco)
-			? extractFrames(buf, stsz, stco, stsc)
-			: mdatLen ? scanMdat(buf, mdatOff, mdatLen) : []
-
-		let decodedIdx = frames.length
-		this._m4a = { sizes: stsz || [], idx: decodedIdx }
+		// Streaming: walk sample tables by absolute file offset so chunk boundaries are irrelevant.
 		this._accum = null; this._accumLen = 0
-
-		// For streaming: compute leftover mdat data after extracted frames
-		if (stsz && decodedIdx < stsz.length && decodedIdx > 0 && stco?.length) {
-			let consumed = 0
-			for (let i = 0; i < decodedIdx; i++) consumed += stsz[i]
-			let dataStart = stco[0] + consumed
-			if (dataStart < buf.length) this._left = buf.subarray(dataStart).slice()
-		}
-
-		if (!frames.length) return EMPTY
-		return this._feedFrames(frames)
+		this._m4a = { sizes: stsz, stco, stsc, idx: 0, ci: 0, sInC: 0, spc: spcAt(0, stsc), nextOff: stco[0] }
+		this._left = buf
+		this._fileOff = 0
+		this._skip = 0
+		return this._extractM4A()
 	}
 
 	_feedM4AData(buf) {
-		let st = this._m4a
-		if (this._left) {
-			let merged = new Uint8Array(this._left.length + buf.length)
-			merged.set(this._left); merged.set(buf, this._left.length)
-			buf = merged; this._left = null
+		if (this._skip > 0) {
+			let n = Math.min(this._skip, buf.length)
+			this._skip -= n
+			this._fileOff += n
+			buf = buf.subarray(n)
+			if (!buf.length) return EMPTY
 		}
+		this._left = append(this._left, buf)
+		return this._extractM4A()
+	}
 
-		let frames = [], pos = 0
+	_extractM4A() {
+		let st = this._m4a, frames = []
 		while (st.idx < st.sizes.length) {
-			let sz = st.sizes[st.idx]
-			if (pos + sz > buf.length) break
-			frames.push(buf.subarray(pos, pos + sz))
-			pos += sz
-			st.idx++
+			let off = st.nextOff, sz = st.sizes[st.idx]
+			let bufOff = off - this._fileOff
+			if (bufOff + sz > this._left.length) break
+			if (bufOff >= 0) frames.push(this._left.subarray(bufOff, bufOff + sz))
+			advanceM4A(st)
 		}
 
-		if (pos < buf.length) this._left = buf.subarray(pos).slice()
-		if (!frames.length) return EMPTY
-		return this._feedFrames(frames)
+		if (st.idx < st.sizes.length) {
+			let nextOff = st.nextOff, end = this._fileOff + this._left.length
+			if (nextOff >= end) {
+				this._skip = nextOff - end
+				this._fileOff = end
+				this._left = null
+			} else if (nextOff > this._fileOff) {
+				this._left = this._left.subarray(nextOff - this._fileOff).slice()
+				this._fileOff = nextOff
+			}
+		} else {
+			this._left = null
+		}
+
+		return frames.length ? this._feedFrames(frames) : EMPTY
 	}
 
 	_alloc(len) {
@@ -213,14 +201,7 @@ class AACDecoder {
 	_decodeADTS(buf) {
 		let m = this.m
 
-		// prepend leftover from previous call
-		if (this._left) {
-			let merged = new Uint8Array(this._left.length + buf.length)
-			merged.set(this._left)
-			merged.set(buf, this._left.length)
-			buf = merged
-			this._left = null
-		}
+		if (this._left) { buf = append(this._left, buf); this._left = null }
 
 		if (!this.h) {
 			if (buf.length < 7) { this._left = buf.slice(); return EMPTY }
@@ -258,27 +239,6 @@ class AACDecoder {
 		}
 
 		if (!frames.length) return EMPTY
-		return this._feedFrames(frames)
-	}
-
-	_decodeM4A(buf) {
-		let { asc, frames } = demuxM4A(buf)
-		if (!asc || !frames.length) return EMPTY
-
-		let m = this.m
-		let h = m._aac_create()
-
-		let srP = m._aac_sr_ptr(), chP = m._aac_ch_ptr()
-		let ptr = this._alloc(asc.length)
-		m.HEAPU8.set(asc, ptr)
-		let err = m._aac_init2(h, ptr, asc.length, srP, chP)
-		if (err < 0) { m._aac_close(h); throw Error('M4A init failed (code ' + err + ')') }
-
-		this.sr = m.getValue(srP, 'i32')
-		this.ch = m.getValue(chP, 'i8')
-		if (!this.ch) { m._aac_close(h); throw Error('M4A init: no channels in ASC') }
-		this.h = h
-
 		return this._feedFrames(frames)
 	}
 
@@ -322,26 +282,11 @@ class AACDecoder {
 
 // ===== M4A demuxer =====
 
-function demuxM4A(buf) {
-	let asc = null, stsz = null, stco = null, stsc = null
-	let mdatOff = 0, mdatLen = 0
-
-	parseBoxes(buf, 0, buf.length, (type, data, off) => {
-		if (type === 'esds') asc = parseEsds(data)
-		else if (type === 'stsz') stsz = parseStsz(data)
-		else if (type === 'stco') stco = parseStco(data)
-		else if (type === 'co64') stco = parseCo64(data)
-		else if (type === 'stsc') stsc = parseStsc(data)
-		else if (type === 'mdat') { mdatOff = off; mdatLen = data.length }
-	})
-
-	if (!asc) return { asc: null, frames: [] }
-
-	let frames = (stsz && stco)
-		? extractFrames(buf, stsz, stco, stsc)
-		: mdatLen ? scanMdat(buf, mdatOff, mdatLen) : []
-
-	return { asc, frames }
+function append(left, buf) {
+	if (!left?.length) return buf.slice()
+	let merged = new Uint8Array(left.length + buf.length)
+	merged.set(left); merged.set(buf, left.length)
+	return merged
 }
 
 const CONTAINERS = new Set(['moov', 'trak', 'mdia', 'minf', 'stbl', 'udta', 'meta', 'edts', 'sinf'])
@@ -352,28 +297,21 @@ function parseBoxes(buf, start, end, cb) {
 		let size = r32(buf, off)
 		let type = String.fromCharCode(buf[off + 4], buf[off + 5], buf[off + 6], buf[off + 7])
 
-		if (size === 0) {
-			size = end - off
-		} else if (size === 1 && off + 16 <= end) {
+		if (size === 0) size = end - off
+		else if (size === 1 && off + 16 <= end) {
 			size = r32(buf, off + 12)
 			if (size < 16) break
-		} else if (size < 8) {
-			break
-		}
+		} else if (size < 8) break
+
+		// skip mdat fast — the raw frames don't interest us here
+		if (type === 'mdat') { off += size; continue }
+		// truncated non-mdat box: tables would be garbage — wait for more data
+		if (off + size > end) break
 
 		let bodyOff = off + 8
-		let truncated = off + size > end
-
-		// mdat carries raw frames — partial is fine; callers honour availability
-		if (type === 'mdat') {
-			cb(type, buf.subarray(bodyOff, truncated ? end : off + size), bodyOff)
-			if (truncated) break
-		}
-		// any other box must be fully present before parsing — partial tables yield garbage
-		else if (truncated) break
-		else if (type === 'stsd') parseSampleDesc(buf, bodyOff, size - 8, cb)
+		if (type === 'stsd') parseSampleDesc(buf, bodyOff, size - 8, cb)
 		else if (CONTAINERS.has(type)) parseBoxes(buf, bodyOff + (type === 'meta' ? 4 : 0), off + size, cb)
-		else cb(type, buf.subarray(bodyOff, off + size), bodyOff)
+		else cb(type, buf.subarray(bodyOff, off + size))
 
 		off += size
 	}
@@ -428,41 +366,24 @@ function parseStsc(data) {
 	return e
 }
 
-function extractFrames(buf, stsz, stco, stsc) {
-	let frames = [], si = 0
-	for (let ci = 0; ci < stco.length; ci++) {
-		let spc = 1
-		if (stsc?.length) {
-			let cn = ci + 1
-			for (let j = stsc.length - 1; j >= 0; j--)
-				if (cn >= stsc[j].first) { spc = stsc[j].spc; break }
-		}
-		let off = stco[ci]
-		for (let s = 0; s < spc && si < stsz.length; s++) {
-			let sz = stsz[si]
-			if (off + sz > buf.length) return frames  // sequential: first missing → rest missing
-			frames.push(buf.subarray(off, off + sz))
-			si++
-			off += sz
-		}
-	}
-	return frames
+function spcAt(ci, stsc) {
+	if (!stsc?.length) return 1
+	let spc = 1, cn = ci + 1
+	for (let j = stsc.length - 1; j >= 0; j--)
+		if (cn >= stsc[j].first) { spc = stsc[j].spc; break }
+	return spc
 }
 
-function scanMdat(buf, off, len) {
-	let frames = [], end = off + len, pos = off
-	while (pos < end - 7) {
-		if (buf[pos] === 0xFF && (buf[pos + 1] & 0xF6) === 0xF0) {
-			let flen = ((buf[pos + 3] & 0x03) << 11) | (buf[pos + 4] << 3) | (buf[pos + 5] >> 5)
-			if (flen > 0 && pos + flen <= end) {
-				frames.push(buf.subarray(pos, pos + flen))
-				pos += flen
-				continue
-			}
-		}
-		pos++
+function advanceM4A(st) {
+	st.nextOff += st.sizes[st.idx]
+	st.idx++
+	st.sInC++
+	if (st.sInC >= st.spc && st.ci + 1 < st.stco.length) {
+		st.ci++
+		st.sInC = 0
+		st.spc = spcAt(st.ci, st.stsc)
+		st.nextOff = st.stco[st.ci]
 	}
-	return frames
 }
 
 function r32(buf, off) {

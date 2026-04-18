@@ -123,6 +123,63 @@ console.log('M4A streaming')
 	}
 }
 
+// ---- M4A streaming, faststart layout (moov before mdat) ----
+// Regression: github #45 — when init parses moov early with no room for first frame,
+// _left stayed null and subsequent chunks misaligned, yielding 0 frames.
+console.log('M4A streaming (faststart)')
+{
+	// Build faststart variant: ftyp + moov + mdat, with stco offsets rewritten.
+	let r32 = (b, o) => (b[o] << 24 | b[o + 1] << 16 | b[o + 2] << 8 | b[o + 3]) >>> 0
+	let w32 = (b, o, v) => { b[o] = (v >>> 24) & 255; b[o + 1] = (v >>> 16) & 255; b[o + 2] = (v >>> 8) & 255; b[o + 3] = v & 255 }
+	let src = new Uint8Array(m4a), boxes = {}, off = 0
+	while (off < src.length - 8) {
+		let sz = r32(src, off)
+		let t = String.fromCharCode(src[off + 4], src[off + 5], src[off + 6], src[off + 7])
+		boxes[t] = { off, sz }
+		off += sz
+	}
+	let moov = src.slice(boxes.moov.off, boxes.moov.off + boxes.moov.sz)
+	let mdat = src.subarray(boxes.mdat.off, boxes.mdat.off + boxes.mdat.sz)
+	let newMdatOff = boxes.ftyp.sz + moov.length
+	let delta = newMdatOff - boxes.mdat.off
+	for (let i = 0; i < moov.length - 4; i++) {
+		let t = String.fromCharCode(moov[i], moov[i + 1], moov[i + 2], moov[i + 3])
+		if (t === 'stco') {
+			let n = r32(moov, i + 8)
+			for (let k = 0; k < n; k++) w32(moov, i + 12 + k * 4, r32(moov, i + 12 + k * 4) + delta)
+		}
+	}
+	let fast = new Uint8Array(boxes.ftyp.sz + moov.length + mdat.length)
+	fast.set(src.subarray(0, boxes.ftyp.sz), 0)
+	fast.set(moov, boxes.ftyp.sz)
+	fast.set(mdat, newMdatOff)
+
+	let ref = await decode(fast)
+	ok(ref.channelData[0].length > 0, 'faststart whole-file decodes')
+
+	// 64-byte chunks: moov spans many chunks AND first frame can't fit at init time.
+	for (let chunkSize of [16384, 1024, 256, 64]) {
+		let dec = await decoder()
+		let chunks = []
+		for (let off = 0; off < fast.length; off += chunkSize) {
+			let r = dec.decode(fast.subarray(off, Math.min(off + chunkSize, fast.length)))
+			if (r.channelData.length) chunks.push(r.channelData[0])
+		}
+		let f = dec.flush()
+		if (f.channelData.length) chunks.push(f.channelData[0])
+		dec.free()
+
+		let total = chunks.reduce((s, c) => s + c.length, 0)
+		ok(total === ref.channelData[0].length, 'chunk=' + chunkSize + ' count matches (' + total + ')')
+
+		let stream = new Float32Array(total), pos = 0
+		for (let c of chunks) { stream.set(c, pos); pos += c.length }
+		let maxDiff = 0
+		for (let i = 0; i < total; i++) maxDiff = Math.max(maxDiff, Math.abs(stream[i] - ref.channelData[0][i]))
+		ok(maxDiff === 0, 'chunk=' + chunkSize + ' content identical')
+	}
+}
+
 // ---- ADTS streaming (partial frame buffering) ----
 console.log('ADTS streaming')
 {
