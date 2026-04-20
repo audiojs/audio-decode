@@ -96,6 +96,26 @@ For selective loading in the browser (avoids bundling all codecs):
 
 Only list the codecs you need — each `@audio/decode-*` package bundles all its WASM/JS deps internally.
 
+### Metadata
+
+Read tags, pictures, markers and regions without decoding samples. Available for `wav`, `mp3`, `flac`.
+
+```js
+import { wav, mp3, flac } from 'audio-decode/meta'
+
+let { meta, sampleRate, markers, regions } = mp3(bytes)
+// meta: { title, artist, album, year, bpm, key, comment, pictures, raw, ... }
+// markers: [{ sample, label }]
+// regions: [{ sample, length, label }]
+```
+
+Each codec sub-package also exposes its parser directly:
+
+```js
+import { parseMeta } from '@audio/decode-wav/meta'
+let info = parseMeta(wavBytes)
+```
+
 ### WebWorker
 
 Each `@audio/decode-*` package is a self-contained ESM module — import directly in a worker:

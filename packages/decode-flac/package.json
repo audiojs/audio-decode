@@ -7,11 +7,13 @@
   "types": "decode-flac.d.ts",
   "exports": {
     ".": "./decode-flac.js",
+    "./meta": "./meta.js",
     "./package.json": "./package.json"
   },
   "files": [
     "decode-flac.js",
     "decode-flac.d.ts",
+    "meta.js",
     "LICENSE"
   ],
   "scripts": {

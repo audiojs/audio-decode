@@ -13,6 +13,7 @@
       "default": "./audio-decode.js"
     },
     "./stream": "./stream.js",
+    "./meta": "./meta.js",
     "./package.json": "./package.json"
   },
   "workspaces": [

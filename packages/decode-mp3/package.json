@@ -7,11 +7,13 @@
   "types": "decode-mp3.d.ts",
   "exports": {
     ".": "./decode-mp3.js",
+    "./meta": "./meta.js",
     "./package.json": "./package.json"
   },
   "files": [
     "decode-mp3.js",
     "decode-mp3.d.ts",
+    "meta.js",
     "LICENSE"
   ],
   "scripts": {

@@ -6,6 +6,7 @@
   "main": "decode-wav.js",
   "exports": {
     ".": "./decode-wav.js",
+    "./meta": "./meta.js",
     "./package.json": "./package.json"
   },
   "keywords": [
