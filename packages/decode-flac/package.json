@@ -1,6 +1,6 @@
 {
   "name": "@audio/decode-flac",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Decode FLAC audio via libflac WASM — self-contained bundle",
   "type": "module",
   "main": "decode-flac.js",
