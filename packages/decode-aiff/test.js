@@ -322,6 +322,37 @@ console.log('sample rate parsing')
 	}
 }
 
+// ---- Trailing chunk after SSND (issue #46) ----
+console.log('trailing chunk after SSND')
+{
+	// Build AIFF with 100 frames of silence, then an ID3 chunk with garbage after SSND
+	let nFrames = 100
+	let samples = new Array(nFrames).fill(0)
+	let base = buildAIFF({ sr: 44100, nCh: 1, bps: 16, samples })
+
+	// Append a fake ID3 chunk (4 id + 4 size + 128 bytes of non-zero garbage)
+	let trailingSize = 128
+	let trailing = new Uint8Array(8 + trailingSize)
+	writeStr(trailing, 0, 'ID3 ')
+	w32(trailing, 4, trailingSize)
+	trailing.fill(0xFF, 8)
+
+	let aiff = new Uint8Array(base.length + trailing.length)
+	aiff.set(base)
+	aiff.set(trailing, base.length)
+	// Update FORM size
+	w32(aiff, 4, r32(base, 4) + trailing.length)
+
+	function r32(b, o) { return ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0 }
+
+	let r = await decode(aiff)
+	ok(r.channelData[0].length === nFrames, 'no extra frames from trailing chunk (got ' + r.channelData[0].length + ', expected ' + nFrames + ')')
+	// All samples should be silence (0), not noise
+	let maxAbs = 0
+	for (let v of r.channelData[0]) maxAbs = Math.max(maxAbs, Math.abs(v))
+	ok(maxAbs === 0, 'trailing garbage not decoded as audio (max=' + maxAbs + ')')
+}
+
 // ---- Edge cases ----
 console.log('edge cases')
 {

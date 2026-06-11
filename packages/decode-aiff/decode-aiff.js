@@ -526,13 +526,14 @@ function scanAiffHdr(b) {
 	let form = str4(b, 8)
 	if (form !== 'AIFF' && form !== 'AIFC') throw Error('Not an AIFF file')
 	let isAIFC = form === 'AIFC'
-	let nCh = 0, bps = 0, sr = 0, comp = 'NONE', commFound = false
+	let nCh = 0, bps = 0, sr = 0, comp = 'NONE', commFound = false, numSampleFrames = 0
 	let pos = 12, end = Math.min(8 + r32(b, 4), b.length)
 	while (pos + 8 <= end) {
 		let ckId = str4(b, pos), ckSize = r32(b, pos + 4), ckData = pos + 8
 		if (ckId === 'COMM') {
 			if (ckData + 18 > b.length) return null
 			nCh = r16(b, ckData)
+			numSampleFrames = r32(b, ckData + 2)
 			bps = r16(b, ckData + 6)
 			sr = readF80(b, ckData + 8)
 			if (isAIFC && ckSize >= 22 && ckData + 22 <= b.length) comp = str4(b, ckData + 18)
@@ -542,6 +543,7 @@ function scanAiffHdr(b) {
 			if (ckData + 8 > b.length) return null
 			let dataOff = r32(b, ckData)
 			let dataStart = ckData + 8 + dataOff
+			let ssndDataSize = ckSize - 8 - dataOff
 			let cUpper = comp.toUpperCase()
 			let byteDepth = Math.ceil(bps / 8)
 			let frameBytes
@@ -550,7 +552,8 @@ function scanAiffHdr(b) {
 			else if (comp === 'alaw' || comp === 'ulaw' || comp === 'ULAW') frameBytes = nCh
 			else if (comp === 'ima4' || comp === 'GSM ' || comp === 'gsm ') frameBytes = 1 // block-based, handled via flush
 			else frameBytes = nCh * byteDepth
-			return { nCh, bps, sr, comp, byteDepth, frameBytes, dataStart, isAIFC }
+			let maxFrames = numSampleFrames ? Math.min(numSampleFrames, Math.floor(ssndDataSize / frameBytes)) : 0
+			return { nCh, bps, sr, comp, byteDepth, frameBytes, dataStart, isAIFC, maxFrames, ssndDataSize }
 		}
 		pos = ckData + ckSize + (ckSize & 1)
 	}
@@ -558,8 +561,9 @@ function scanAiffHdr(b) {
 }
 
 function decodeAiffRaw(raw, hdr) {
-	let { nCh, bps, sr, comp, byteDepth, frameBytes } = hdr
+	let { nCh, bps, sr, comp, byteDepth, frameBytes, maxFrames } = hdr
 	let frames = Math.floor(raw.length / frameBytes)
+	if (maxFrames) frames = Math.min(frames, maxFrames)
 	if (!frames) return EMPTY
 	let channelData = Array.from({ length: nCh }, () => new Float32Array(frames))
 	let cUpper = comp.toUpperCase()
